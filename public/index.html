@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SecOps | Advanced Port Scanner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #00f2fe;
@@ -34,7 +37,7 @@
             color: var(--text);
             line-height: 1.5;
             overflow-x: hidden;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 20% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
                 radial-gradient(circle at 80% 80%, rgba(127, 0, 255, 0.05) 0%, transparent 40%);
             min-height: 100vh;
@@ -105,7 +108,8 @@
             letter-spacing: 0.05em;
         }
 
-        input, select {
+        input,
+        select {
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -124,7 +128,8 @@
             padding: 12px;
         }
 
-        input:focus, select:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.1);
@@ -174,7 +179,6 @@
             font-size: 0.8125rem;
             color: var(--text-dim);
             position: relative;
-            white-space: pre-wrap;
             word-break: break-all;
             line-height: 1.4;
         }
@@ -281,9 +285,23 @@
             text-transform: uppercase;
         }
 
-        .status-open { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-        .status-closed { background: rgba(239, 68, 68, 0.1); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.2); }
-        .status-filtered { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .status-open {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-closed {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .status-filtered {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
 
         .loader {
             display: none;
@@ -296,22 +314,43 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .stats {
@@ -347,7 +386,7 @@
             color: #fff;
             padding: 12px 20px;
             border-radius: 8px;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             border-left: 4px solid var(--primary);
             animation: slideInRight 0.3s ease-out forwards;
             font-size: 0.875rem;
@@ -356,19 +395,41 @@
             gap: 10px;
             min-width: 250px;
         }
-        .toast.error { border-left-color: var(--error); }
-        .toast.success { border-left-color: var(--success); }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+
+        .toast.error {
+            border-left-color: var(--error);
         }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         @keyframes fadeOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -382,7 +443,8 @@
                     <div class="input-grid">
                         <div class="form-group">
                             <label for="target">Target Host</label>
-                            <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required value="localhost">
+                            <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required
+                                value="localhost">
                         </div>
                         <div class="form-group">
                             <label for="preset">Scan Profile</label>
@@ -392,7 +454,9 @@
                                 <option value="1-1024">Standard (1-1024)</option>
                                 <option value="1-65535">Full Scan (1-65535)</option>
                                 <option value="80,443,8080,8443">Web Ports</option>
-                                <option value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">Common Vulnerable</option>
+                                <option
+                                    value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">
+                                    Common Vulnerable</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -412,17 +476,23 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn-scan" id="scanBtn">
                         <span id="btnText">Execute Scan</span>
                         <div class="loader" id="loader"></div>
                     </button>
-                    <div class="progress-bar-container" style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;" id="progressContainer">
-                        <div class="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);" id="scanProgress"></div>
+                    <div class="progress-bar-container"
+                        style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;"
+                        id="progressContainer">
+                        <div class="progress-bar"
+                            style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);"
+                            id="scanProgress"></div>
                     </div>
                 </form>
 
-                <div class="terminal-preview" id="terminalPreview"><div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span></div>
+                <div class="terminal-preview" id="terminalPreview">
+                    <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
+                </div>
 
                 <div class="options-bar">
                     <label class="checkbox-group">
@@ -449,17 +519,22 @@
             </div>
 
             <section class="results-section" id="resultsSection">
-                <div class="results-header" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;">
+                <div class="results-header"
+                    style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <h2 style="margin: 0;">Scan Results</h2>
-                        <span id="resultsTarget" style="color: var(--text-dim); font-family: 'JetBrains Mono'; font-size: 0.875rem;"></span>
+                        <span id="resultsTarget"
+                            style="color: var(--text-dim); font-family: 'JetBrains Mono'; font-size: 0.875rem;"></span>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="searchInput" placeholder="Search port or service..." style="width: 250px; background: rgba(0,0,0,0.3); padding: 8px 12px;">
-                        <button id="exportCsvBtn" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export CSV</button>
+                        <input type="text" id="searchInput" placeholder="Search port or service..."
+                            style="width: 250px; background: rgba(0,0,0,0.3); padding: 8px 12px;">
+                        <button id="exportCsvBtn"
+                            style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export
+                            CSV</button>
                     </div>
                 </div>
-                
+
                 <table class="results-table">
                     <thead>
                         <tr>
@@ -478,7 +553,9 @@
     </div>
 
     <!-- Toast Container -->
-    <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
+    <div id="toastContainer"
+        style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;">
+    </div>
 
     <script>
         const scanForm = document.getElementById('scanForm');
@@ -496,7 +573,7 @@
         const statsPanel = document.getElementById('statsPanel');
         const onlyOpenToggle = document.getElementById('onlyOpenToggle');
         const quickInfo = document.getElementById('quickInfo');
-        
+
         const cmdTarget = document.getElementById('cmdTarget');
         const cmdRangeGroup = document.getElementById('cmdRangeGroup');
         const cmdFlag = document.getElementById('cmdFlag');
@@ -523,7 +600,7 @@
             toast.className = `toast ${type}`;
             toast.innerText = message;
             container.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
                 setTimeout(() => toast.remove(), 300);
@@ -532,7 +609,7 @@
 
         scanForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const target = document.getElementById('target').value;
             const range = document.getElementById('range').value;
             const scan_type = document.getElementById('scan_type').value;
@@ -554,11 +631,25 @@
                 }
             }
 
+            // Estimate total ports for real progress
+            const totalPorts = estimateTotalPorts(range || "1-1024");
+
             startLoading();
             const startTime = performance.now();
+            
+            let currentResults = {
+                target: target,
+                ports: []
+            };
+            
+            let openCount = 0;
+            resultsBody.innerHTML = '';
+            resultsTarget.innerText = `Target: ${target}`;
+            resultsSection.style.display = 'block';
+            statsPanel.style.display = 'grid';
 
             try {
-                const response = await fetch('/api/scan', {
+                const response = await fetch('/api/scan/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ target, range, scan_type, timeout })
@@ -566,30 +657,143 @@
 
                 if (!response.ok) throw new Error('Scan failed with status ' + response.status);
 
-                const data = await response.json();
-                const endTime = performance.now();
-                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const portRes = JSON.parse(line.slice(6));
+                                currentResults.ports.push(portRes);
+                                
+                                // Update Stats
+                                if (portRes.status === 'Open') openCount++;
+                                document.getElementById('statTotal').innerText = currentResults.ports.length;
+                                document.getElementById('statOpen').innerText = openCount;
+                                
+                                // Update Progress Bar (Real Progress)
+                                const prog = (currentResults.ports.length / totalPorts) * 100;
+                                scanProgress.style.width = Math.min(prog, 99) + '%';
+
+                                appendResultSorted(portRes);
+                            } catch (e) {}
+                        }
+                    }
+                }
+
+                // SUCCESS: Stop animation immediately before showing 100%
+                clearInterval(scanForm._animInterval);
                 scanProgress.style.width = '100%';
-                setTimeout(() => {
-                    renderResults(data, Math.round(endTime - startTime));
-                    showToast(`Scan completed for ${target}`, 'success');
-                }, 500);
+
+                const endTime = performance.now();
+                lastScanData = currentResults;
+                document.getElementById('statTime').innerText = `${Math.round(endTime - startTime)}ms`;
+                showToast(`Scan completed for ${target}`, 'success');
 
             } catch (err) {
+                clearInterval(scanForm._animInterval);
                 showToast('Error: ' + err.message, 'error');
             } finally {
                 setTimeout(stopLoading, 500);
             }
         });
 
+        // Helper to estimate total ports from range string
+        function estimateTotalPorts(r) {
+            let count = 0;
+            try {
+                r.split(',').forEach(p => {
+                    const parts = p.split('-');
+                    if (parts.length === 2) {
+                        count += (parseInt(parts[1]) - parseInt(parts[0]) + 1);
+                    } else {
+                        count += 1;
+                    }
+                });
+            } catch(e) { return 1024; }
+            return count || 1;
+        }
+
+        // Appends a single result to the table, keeping Open ports at the top and sorting numerically
+        function appendResultSorted(p) {
+            const showOnlyOpen = onlyOpenToggle.checked;
+            const searchVal = searchInput.value.toLowerCase();
+            
+            if (showOnlyOpen && p.status !== 'Open') return;
+            
+            const serviceName = getService(p.port);
+            if (searchVal) {
+                const rowText = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
+                if (!rowText.includes(searchVal)) return;
+            }
+
+            const tr = document.createElement('tr');
+            tr.dataset.port = p.port;
+            tr.dataset.status = p.status;
+            tr.innerHTML = `
+                <td>${p.port}</td>
+                <td>${p.protocol}</td>
+                <td style="color: var(--text-dim); font-size: 0.8125rem;">${serviceName}</td>
+                <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
+            `;
+
+            const rows = Array.from(resultsBody.querySelectorAll('tr'));
+            
+            let inserted = false;
+            // We want Open ports at top, Closed/Filtered below.
+            // Within each group, sort by port number.
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const rowPort = parseInt(row.dataset.port);
+                const rowStatus = row.dataset.status;
+
+                // Case 1: p is Open
+                if (p.status === 'Open') {
+                    if (rowStatus !== 'Open') {
+                        // Open ports always go before non-Open ports
+                        resultsBody.insertBefore(tr, row);
+                        inserted = true;
+                        break;
+                    } else if (p.port < rowPort) {
+                        // Both are Open, sort by port
+                        resultsBody.insertBefore(tr, row);
+                        inserted = true;
+                        break;
+                    }
+                } 
+                // Case 2: p is not Open
+                else {
+                    if (rowStatus !== 'Open' && p.port < rowPort) {
+                        // Both are non-Open, sort by port
+                        resultsBody.insertBefore(tr, row);
+                        inserted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!inserted) {
+                resultsBody.appendChild(tr);
+            }
+        }
+
         const updateCommand = () => {
             const target = document.getElementById('target').value || 'localhost';
             const range = document.getElementById('range').value;
             const scan_type = document.getElementById('scan_type').value;
             const timeout = document.getElementById('timeout').value;
-            
+
             cmdTarget.innerText = target;
-            
+
             if (range && range.trim() !== '') {
                 cmdRangeGroup.innerText = `--range ${range}`;
                 cmdRangeGroup.style.display = 'inline';
@@ -603,7 +807,7 @@
             } else {
                 cmdTimeout.style.display = 'none';
             }
-            
+
             let flag = '';
             if (scan_type === 'syn') flag = '--syn';
             if (scan_type === 'udp') flag = '--udp';
@@ -625,7 +829,7 @@
                 updateCommand();
             }
         });
-        
+
         document.getElementById('range').addEventListener('input', () => {
             presetSelect.value = "";
         });
@@ -643,14 +847,6 @@
             resultsSection.style.display = 'none';
             progressContainer.style.display = 'block';
             scanProgress.style.width = '0%';
-            
-            // Simulate progression
-            let progress = 0;
-            scanForm._animInterval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 90) progress = 90;
-                scanProgress.style.width = progress + '%';
-            }, 300);
         }
 
         function stopLoading() {
@@ -665,20 +861,27 @@
             lastScanData = data;
             resultsBody.innerHTML = '';
             resultsTarget.innerText = `Target: ${data.target}`;
-            
+
+            // Sort data first: Open at top, then by port
+            const sortedPorts = [...data.ports].sort((a, b) => {
+                if (a.status === 'Open' && b.status !== 'Open') return -1;
+                if (a.status !== 'Open' && b.status === 'Open') return 1;
+                return a.port - b.port;
+            });
+
             const showOnlyOpen = onlyOpenToggle.checked;
             const searchVal = searchInput.value.toLowerCase();
             let openCount = 0;
-            
-            data.ports.forEach(p => {
+
+            sortedPorts.forEach(p => {
                 if (p.status === 'Open') openCount++;
-                
+
                 if (showOnlyOpen && p.status !== 'Open') {
                     return;
                 }
-                
+
                 const serviceName = getService(p.port);
-                
+
                 // Search filter
                 if (searchVal) {
                     const rowText = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
@@ -686,6 +889,8 @@
                 }
 
                 const tr = document.createElement('tr');
+                tr.dataset.port = p.port;
+                tr.dataset.status = p.status;
                 tr.innerHTML = `
                     <td>${p.port}</td>
                     <td>${p.protocol}</td>
@@ -700,13 +905,13 @@
             if (duration !== undefined) {
                 document.getElementById('statTime').innerText = `${duration}ms`;
             }
-            
+
             statsPanel.style.display = 'grid';
             resultsSection.style.display = 'block';
         }
 
         function getStatusClass(status) {
-            switch(status) {
+            switch (status) {
                 case 'Open': return 'status-open';
                 case 'Closed': return 'status-closed';
                 case 'Filtered': return 'status-filtered';
@@ -723,12 +928,12 @@
                 showToast('No data to export', 'error');
                 return;
             }
-            
+
             let csv = 'Port,Protocol,Service,Status\n';
             lastScanData.ports.forEach(p => {
                 csv += `${p.port},${p.protocol},"${getService(p.port)}",${p.status}\n`;
             });
-            
+
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -740,4 +945,5 @@
         });
     </script>
 </body>
+
 </html>

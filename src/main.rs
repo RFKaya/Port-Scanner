@@ -84,20 +84,23 @@ async fn main() {
     }
 }
 
-pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> ScanResult {
-    // Determine scan type based on flags
+pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> futures::stream::BoxStream<'static, PortResult> {
+    use tokio::sync::mpsc;
+    use tokio_stream::wrappers::ReceiverStream;
+
+    // Determine scan type
     let scan_type = if syn {
         ScanType::Syn
     } else if udp {
         ScanType::Udp
     } else {
-        ScanType::Connect // Default
+        ScanType::Connect
     };
 
     // Parse target
     let target_ip = resolve_target(&target);
     if target_ip.is_none() {
-        return ScanResult { target: target.clone(), ports: vec![] };
+        return stream::empty().boxed();
     }
     let target_ip = target_ip.unwrap();
 
@@ -107,31 +110,39 @@ pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: 
 
     // Timeout duration
     let timeout_dur = Duration::from_millis(timeout_ms);
-
-    // Parallel stream for scanning
     let concurrency_limit = 500;
 
-    let scan_stream = stream::iter(ports).map(|port| {
-        let st = scan_type.clone();
-        async move {
-            match st {
-                ScanType::Connect => tcp_connect::scan_port(target_ip, port, timeout_dur).await,
-                ScanType::Syn => tcp_syn::scan_port(target_ip, port, timeout_dur).await,
-                ScanType::Udp => udp::scan_port(target_ip, port, timeout_dur).await,
+    let (tx, rx) = mpsc::channel(100);
+
+    tokio::spawn(async move {
+        let scan_stream = stream::iter(ports).map(|port| {
+            let st = scan_type.clone();
+            let tx_inner = tx.clone();
+            async move {
+                let res = match st {
+                    ScanType::Connect => tcp_connect::scan_port(target_ip, port, timeout_dur).await,
+                    ScanType::Syn => tcp_syn::scan_port(target_ip, port, timeout_dur).await,
+                    ScanType::Udp => udp::scan_port(target_ip, port, timeout_dur).await,
+                };
+                let _ = tx_inner.send(res).await;
             }
-        }
-    }).buffer_unordered(concurrency_limit);
+        }).buffer_unordered(concurrency_limit);
+        
+        scan_stream.collect::<()>().await;
+    });
 
-    // Collect results
-    let mut results: Vec<PortResult> = scan_stream.collect().await;
+    ReceiverStream::new(rx).boxed()
+}
 
-    // Sort by port
-    results.sort_by(|a, b| a.port.cmp(&b.port));
-
-    ScanResult {
-        target,
-        ports: results,
+pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> ScanResult {
+    let mut stream = run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms).await;
+    let mut results = Vec::new();
+    while let Some(res) = stream.next().await {
+        results.push(res);
     }
+    // Final sort for CLI/Legacy
+    results.sort_by(|a, b| a.port.cmp(&b.port));
+    ScanResult { target, ports: results }
 }
 
 // Simple port range parser. Handles "80", "1-1024", or "80,443,1-100".

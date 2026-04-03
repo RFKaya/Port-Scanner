@@ -1,8 +1,10 @@
 use axum::{
     routing::{get, post},
     Json, Router,
-    response::Html,
+    response::{Html, sse::{Event, Sse}},
 };
+use futures::StreamExt;
+use std::convert::Infallible;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::fs;
@@ -27,6 +29,7 @@ pub async fn start_server(port: u16) {
     let app = Router::new()
         .route("/", get(index_handler))
         .route("/api/scan", post(scan_handler))
+        .route("/api/scan/stream", post(scan_stream_handler))
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -72,4 +75,54 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Json<ScanResult> {
     }
     
     Json(result)
+}
+
+async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futures::Stream<Item = Result<Event, Infallible>>> {
+    let syn = payload.scan_type == "syn";
+    let udp = payload.scan_type == "udp";
+    
+    // Tarama parametrelerini yedekleyelim (arka plan kaydı için)
+    let target_save = payload.target.clone();
+    let range_save = payload.range.clone();
+    let timeout_save = payload.timeout;
+    
+    let stream = crate::run_port_scan_logic_stream(
+        payload.target,
+        payload.range,
+        syn,
+        udp,
+        payload.timeout,
+    ).await;
+
+    // Arka planda taramayı tamamlayıp diske kaydedecek bir görev başlatalım
+    tokio::spawn(async move {
+        let result = crate::run_port_scan_logic(
+            target_save,
+            range_save,
+            syn,
+            udp,
+            timeout_save,
+        ).await;
+
+        let _ = fs::create_dir_all("scans");
+        
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+            
+        let target_safe = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
+        let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
+        
+        if let Ok(json_str) = serde_json::to_string_pretty(&result) {
+            let _ = fs::write(&filename, json_str);
+        }
+    });
+
+    let event_stream = stream.map(|res| {
+        let json = serde_json::to_string(&res).unwrap_or_default();
+        Ok(Event::default().data(json))
+    });
+
+    Sse::new(event_stream)
 }
