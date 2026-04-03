@@ -1,8 +1,12 @@
 [package]
 name = "port-scan"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
-description = "A TCP/UDP port scanner in Rust"
+authors = ["RFKaya"]
+description = "A high-performance, asynchronous TCP/UDP port scanner with a modern Web UI."
+readme = "README.txt"
+repository = "https://github.com/RFKaya/Port-Scanner"
+license = "MIT"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -15,3 +19,11 @@ socket2 = { version = "0.5", features = ["all"] } # For fine-tuning sockets if n
 axum = "0.7"
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 mime_guess = "2.0"
+
+# --- Release Optimizasyonları ---
+[profile.release]
+opt-level = 3        # En yüksek performans için (0-3 arası)
+lto = "fat"          # Link Time Optimization: Tüm binary çapında derin analiz yaparak kodu hızlandırır
+codegen-units = 1    # Derleme daha yavaş olur ama sonuçlanan binary çok daha küçük ve hızlı olur
+panic = "abort"      # Hata olduğunda stack'i temizleme (unwind) yerine doğrudan durur, binary'i küçültür
+strip = "symbols"    # Gereksiz debug sembollerini temizler (Boyut %50'ye kadar düşebilir)
