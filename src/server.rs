@@ -1,7 +1,9 @@
 use axum::{
-    routing::{get, post},
+    routing::{get, post, delete},
     Json, Router,
     response::{Html, sse::{Event, Sse}},
+    extract::Path,
+    http::StatusCode,
 };
 use futures::StreamExt;
 use std::convert::Infallible;
@@ -30,6 +32,9 @@ pub async fn start_server(port: u16) {
         .route("/", get(index_handler))
         .route("/api/scan", post(scan_handler))
         .route("/api/scan/stream", post(scan_stream_handler))
+        .route("/api/history", get(list_history_handler))
+        .route("/api/history/:filename", get(get_history_handler))
+        .route("/api/history/:filename", delete(delete_history_handler))
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -125,4 +130,48 @@ async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futur
     });
 
     Sse::new(event_stream)
+}
+
+async fn list_history_handler() -> Json<Vec<String>> {
+    let mut history = Vec::new();
+    if let Ok(entries) = fs::read_dir("scans") {
+        for entry in entries.flatten() {
+            if let Ok(name) = entry.file_name().into_string() {
+                if name.ends_with(".json") {
+                    history.push(name);
+                }
+            }
+        }
+    }
+    // Dosya ismindeki timestamp'e göre azalan sırada (en yeni en üstte)
+    history.sort_by(|a, b| b.cmp(a));
+    Json(history)
+}
+
+async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanResult>, StatusCode> {
+    // Güvenlik kontrolü
+    if !filename.ends_with(".json") || filename.contains("..") || filename.contains('/') || filename.contains('\\') {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
+    let path = format!("scans/{}", filename);
+    if let Ok(content) = fs::read_to_string(path) {
+        if let Ok(result) = serde_json::from_str::<ScanResult>(&content) {
+            return Ok(Json(result));
+        }
+    }
+    Err(StatusCode::NOT_FOUND)
+}
+
+async fn delete_history_handler(Path(filename): Path<String>) -> StatusCode {
+    if !filename.ends_with(".json") || filename.contains("..") || filename.contains('/') || filename.contains('\\') {
+        return StatusCode::BAD_REQUEST;
+    }
+    
+    let path = format!("scans/{}", filename);
+    if fs::remove_file(path).is_ok() {
+        StatusCode::OK
+    } else {
+        StatusCode::NOT_FOUND
+    }
 }

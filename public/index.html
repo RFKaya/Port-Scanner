@@ -479,10 +479,130 @@
             box-shadow: 0 0 8px currentColor;
         }
 
-        /* Optimization: CSS-based status filtering */
-        #resultsBody.hide-Open tr[data-status="Open"] { display: none; }
-        #resultsBody.hide-Closed tr[data-status="Closed"] { display: none; }
-        #resultsBody.hide-Filtered tr[data-status="Filtered"] { display: none; }
+        /* Tab System */
+        .tabs-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 242, 254, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* History List */
+        .history-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .history-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateX(4px);
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-target {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-meta {
+            font-size: 0.8125rem;
+            color: var(--text-dim);
+            display: flex;
+            gap: 16px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            color: var(--text-dim);
+        }
+
+        .btn-view:hover {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+            border-color: var(--error);
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
     </style>
 </head>
 
@@ -494,81 +614,101 @@
         </header>
 
         <main>
-            <div class="scanner-card">
-                <form id="scanForm">
-                    <div class="input-grid">
-                        <div class="form-group">
-                            <label for="target">Target Host</label>
-                            <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required
-                                value="localhost">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="new-scan">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    Yeni Tarama
+                </button>
+                <button class="tab-btn" data-tab="history-tab" id="historyTabBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+                    Taramalarım
+                </button>
+            </div>
+
+            <div id="new-scan" class="tab-content active">
+                <div class="scanner-card">
+                    <form id="scanForm">
+                        <div class="input-grid">
+                            <div class="form-group">
+                                <label for="target">Target Host</label>
+                                <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required
+                                    value="localhost">
+                            </div>
+                            <div class="form-group">
+                                <label for="preset">Scan Profile</label>
+                                <select id="preset">
+                                    <option value="">Custom Range...</option>
+                                    <option value="1-100">Top 100 Ports</option>
+                                    <option value="1-1024">Standard (1-1024)</option>
+                                    <option value="1-65535">Full Scan (1-65535)</option>
+                                    <option value="80,443,8080,8443">Web Ports</option>
+                                    <option
+                                        value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">
+                                        Common Vulnerable</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="range">Port Range</label>
+                                <input type="text" id="range" placeholder="e.g., 1-1024 or 80,443">
+                            </div>
+                            <div class="form-group">
+                                <label for="timeout">Timeout</label>
+                                <input type="number" id="timeout" placeholder="1000" min="1" value="1000">
+                            </div>
+                            <div class="form-group">
+                                <label for="scan_type">Scan Type</label>
+                                <select id="scan_type">
+                                    <option value="tcp">TCP Connect</option>
+                                    <option value="syn">TCP SYN (Full)</option>
+                                    <option value="udp">UDP Protocol</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="preset">Scan Profile</label>
-                            <select id="preset">
-                                <option value="">Custom Range...</option>
-                                <option value="1-100">Top 100 Ports</option>
-                                <option value="1-1024">Standard (1-1024)</option>
-                                <option value="1-65535">Full Scan (1-65535)</option>
-                                <option value="80,443,8080,8443">Web Ports</option>
-                                <option
-                                    value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">
-                                    Common Vulnerable</option>
-                            </select>
+
+                        <button type="submit" class="btn-scan" id="scanBtn">
+                            <span id="btnText">Execute Scan</span>
+                            <div class="loader" id="loader"></div>
+                        </button>
+                        <div class="progress-bar-container"
+                            style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;"
+                            id="progressContainer">
+                            <div class="progress-bar"
+                                style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);"
+                                id="scanProgress"></div>
                         </div>
-                        <div class="form-group">
-                            <label for="range">Port Range</label>
-                            <input type="text" id="range" placeholder="e.g., 1-1024 or 80,443">
-                        </div>
-                        <div class="form-group">
-                            <label for="timeout">Timeout</label>
-                            <input type="number" id="timeout" placeholder="1000" min="1" value="1000">
-                        </div>
-                        <div class="form-group">
-                            <label for="scan_type">Scan Type</label>
-                            <select id="scan_type">
-                                <option value="tcp">TCP Connect</option>
-                                <option value="syn">TCP SYN (Full)</option>
-                                <option value="udp">UDP Protocol</option>
-                            </select>
-                        </div>
+                    </form>
+
+                    <div class="terminal-preview" id="terminalPreview">
+                        <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span
+                                id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span
+                                id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
                     </div>
 
-                    <button type="submit" class="btn-scan" id="scanBtn">
-                        <span id="btnText">Execute Scan</span>
-                        <div class="loader" id="loader"></div>
-                    </button>
-                    <div class="progress-bar-container"
-                        style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;"
-                        id="progressContainer">
-                        <div class="progress-bar"
-                            style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);"
-                            id="scanProgress"></div>
+                    <div class="options-bar">
+                        <div id="quickInfo" style="color: var(--text-dim); font-size: 0.75rem;">Ready to scan</div>
                     </div>
-                </form>
 
-                <div class="terminal-preview" id="terminalPreview">
-                    <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span
-                            id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span
-                            id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
+                    <div class="stats" id="statsPanel" style="display: none;">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-label">Total Scanned</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--success);" id="statOpen">0</div>
+                            <div class="stat-label">Ports Open</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTime">0ms</div>
+                            <div class="stat-label">Scan Speed</div>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="options-bar">
-                    <div id="quickInfo" style="color: var(--text-dim); font-size: 0.75rem;">Ready to scan</div>
-                </div>
-
-                <div class="stats" id="statsPanel" style="display: none;">
-                    <div class="stat-card">
-                        <div class="stat-value" id="statTotal">0</div>
-                        <div class="stat-label">Total Scanned</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" style="color: var(--success);" id="statOpen">0</div>
-                        <div class="stat-label">Ports Open</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statTime">0ms</div>
-                        <div class="stat-label">Scan Speed</div>
-                    </div>
+            <div id="history-tab" class="tab-content">
+                <div class="history-list" id="historyList">
+                    <!-- History items will be injected here -->
+                    <div class="empty-history">Geçmiş tarama bulunmamaktadır.</div>
                 </div>
             </div>
 
@@ -641,6 +781,27 @@
         const statsPanel = document.getElementById('statsPanel');
         const quickInfo = document.getElementById('quickInfo');
         const statusFilterGroup = document.getElementById('statusFilterGroup');
+        const historyList = document.getElementById('historyList');
+        const historyTabBtn = document.getElementById('historyTabBtn');
+
+        // Tab Switching Logic
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+                
+                // Update buttons
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                
+                if (tabId === 'history-tab') {
+                    fetchHistory();
+                }
+            });
+        });
 
         let statusFilters = {
             'Open': true,
@@ -1018,6 +1179,92 @@
             URL.revokeObjectURL(url);
             showToast('Exported to CSV successfully', 'success');
         });
+
+        // History Functions
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/api/history');
+                if (!response.ok) throw new Error('Failed to fetch history');
+                const files = await response.json();
+                
+                if (files.length === 0) {
+                    historyList.innerHTML = '<div class="empty-history">Geçmiş tarama bulunmamaktadır.</div>';
+                    return;
+                }
+                
+                historyList.innerHTML = '';
+                files.forEach(file => {
+                    // filename format: scan_target_timestamp.json
+                    const parts = file.replace('scan_', '').replace('.json', '').split('_');
+                    const timestamp = parts.pop();
+                    const target = parts.join('_');
+                    const date = new Date(parseInt(timestamp) * 1000).toLocaleString();
+                    
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <div class="history-info">
+                            <div class="history-target">${target}</div>
+                            <div class="history-meta">
+                                <span>${date}</span>
+                            </div>
+                        </div>
+                        <div class="history-actions">
+                            <button class="btn-icon btn-view" title="Görüntüle" onclick="viewHistory('${file}')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                            <button class="btn-icon btn-delete" title="Sil" onclick="deleteHistory('${file}')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                    historyList.appendChild(item);
+                });
+            } catch (err) {
+                showToast('Error loading history: ' + err.message, 'error');
+            }
+        }
+
+        async function viewHistory(filename) {
+            try {
+                const response = await fetch(`/api/history/${filename}`);
+                if (!response.ok) throw new Error('Failed to load scan data');
+                const data = await response.json();
+                
+                // Render results
+                renderResults(data);
+                
+                // Show results section if it was hidden
+                resultsSection.style.display = 'block';
+                
+                // Switch back to scan tab to see results
+                document.querySelector('[data-tab="new-scan"]').click();
+                
+                // Scroll to results
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                showToast(`Loaded results for ${data.target}`);
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        async function deleteHistory(filename) {
+            if (!confirm('Bu tarama kaydını silmek istediğinize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch(`/api/history/${filename}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
+                
+                showToast('Tarama kaydı silindi');
+                fetchHistory(); // Refresh list
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
+        // Initial fetch
+        // fetchHistory();
     </script>
 </body>
 
