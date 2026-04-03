@@ -991,13 +991,14 @@
             let inserted = false;
             
             while (current) {
-                const rowPort = parseInt(current.dataset.port);
-                const rowStatus = current.dataset.status;
+                const statusPriority = { 'Open': 0, 'Closed': 1, 'Filtered': 2 };
+                const pPri = statusPriority[p.status] ?? 3;
+                const rowPri = statusPriority[rowStatus] ?? 3;
 
                 let shouldInsertBefore = false;
-                if (p.status === 'Open') {
-                    if (rowStatus !== 'Open' || p.port < rowPort) shouldInsertBefore = true;
-                } else if (rowStatus !== 'Open' && p.port < rowPort) {
+                if (pPri < rowPri) {
+                    shouldInsertBefore = true;
+                } else if (pPri === rowPri && p.port < rowPort) {
                     shouldInsertBefore = true;
                 }
 
@@ -1106,9 +1107,12 @@
             resultsTarget.innerText = `Target: ${data.target}`;
 
             // Sort data first: Open at top, then by port
+            const statusPriority = { 'Open': 0, 'Closed': 1, 'Filtered': 2 };
             const sortedPorts = [...data.ports].sort((a, b) => {
-                if (a.status === 'Open' && b.status !== 'Open') return -1;
-                if (a.status !== 'Open' && b.status === 'Open') return 1;
+                const aPri = statusPriority[a.status] ?? 3;
+                const bPri = statusPriority[b.status] ?? 3;
+                
+                if (aPri !== bPri) return aPri - bPri;
                 return a.port - b.port;
             });
 
