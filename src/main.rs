@@ -134,28 +134,37 @@ pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: 
     }
 }
 
-// Simple port range parser. Handles "80" or "1-1024".
+// Simple port range parser. Handles "80", "1-1024", or "80,443,1-100".
 fn parse_ports(range_str: &str) -> Vec<u16> {
     let mut ports = Vec::new();
-    let parts: Vec<&str> = range_str.split('-').collect();
-    if parts.len() == 2 {
-        let start: u32 = parts[0].parse().unwrap_or(1);
-        let end: u32 = parts[1].parse().unwrap_or(65535);
+    for part in range_str.split(',') {
+        let part_str = part.trim();
+        if part_str.is_empty() { continue; }
         
-        // Clamp to valid port ranges
-        let start_clamped = start.max(1).min(65535) as u16;
-        let end_clamped = end.max(1).min(65535) as u16;
-        
-        for p in start_clamped..=end_clamped {
-            ports.push(p);
-        }
-    } else if parts.len() == 1 {
-        if let Ok(p) = parts[0].parse::<u32>() {
-            if p >= 1 && p <= 65535 {
-                ports.push(p as u16);
+        let sub_parts: Vec<&str> = part_str.split('-').collect();
+        if sub_parts.len() == 2 {
+            let start: u32 = sub_parts[0].parse().unwrap_or(1);
+            let end: u32 = sub_parts[1].parse().unwrap_or(65535);
+            
+            // Clamp to valid port ranges
+            let start_clamped = start.max(1).min(65535) as u16;
+            let end_clamped = end.max(1).min(65535) as u16;
+            
+            for p in start_clamped..=end_clamped {
+                ports.push(p);
+            }
+        } else if sub_parts.len() == 1 {
+            if let Ok(p) = sub_parts[0].parse::<u32>() {
+                if p >= 1 && p <= 65535 {
+                    ports.push(p as u16);
+                }
             }
         }
     }
+    // Remove duplicates
+    ports.sort_unstable();
+    ports.dedup();
+    
     ports
 }
 
