@@ -4,15 +4,36 @@ mod tcp_connect;
 mod tcp_syn;
 mod udp;
 
-use clap::Parser;
+use clap::{Parser, Subcommand, Args as ClapArgs};
 use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
+#[command(name = "secops", version, about = "Security Operations Tool")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Penetration testing tools
+    Pentest {
+        #[command(subcommand)]
+        tool: PentestCommands,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum PentestCommands {
+    /// Port scanning tool
+    PortScan(ScanArgs),
+}
+
+#[derive(ClapArgs, Debug)]
+struct ScanArgs {
     /// Target IP or hostname
     #[arg(required = true)]
     target: String,
@@ -44,8 +65,16 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
     
+    match cli.command {
+        Commands::Pentest { tool } => match tool {
+            PentestCommands::PortScan(args) => run_port_scan(args).await,
+        },
+    }
+}
+
+async fn run_port_scan(args: ScanArgs) {
     // Determine scan type based on flags
     let scan_type = if args.syn {
         ScanType::Syn
@@ -70,7 +99,6 @@ async fn main() {
     let timeout_dur = Duration::from_millis(args.timeout);
 
     // Parallel stream for scanning
-    // Concurrency limit is set to 500 to avoid file descriptor limits easily on standard setups
     let concurrency_limit = 500;
 
     let scan_stream = stream::iter(ports).map(|port| {
