@@ -32,14 +32,29 @@ Run the scanner using `cargo run --` followed by the command arguments.
 
 ### 1. Basic TCP Connect Scan
 Scan the first 1024 ports of a target (Default).
-```powershell
-cargo run -- pentest port-scan 127.0.0.1
+```bash
+# TCP Connect Scan (Default)
+cargo run -- pentest port-scan 127.0.0.1 --range 1-1000
+
+# JSON Output
+cargo run -- pentest port-scan google.com --range 80,443 --format json
 ```
 
-### 2. Scan Specific Port Range
-```powershell
-cargo run -- pentest port-scan google.com --range 80-443
+## Running the Web UI 🌐
+
+For a modern, interactive experience, you can start the built-in web server:
+
+```bash
+cargo run -- web
 ```
+
+By default, the UI will be available at [http://localhost:3000](http://localhost:3000).
+
+### Web UI Features
+- **Real-time Scanning**: Trigger scans directly from your browser.
+- **Visual Analytics**: Interactive dashboard with port status breakdown.
+- **Glassmorphism Design**: High-end user interface with dark mode support.
+- **Protocols Supported**: TCP Connect, TCP SYN (requires admin), and UDP.
 
 ### 3. Stealthy SYN Scan (Requires Admin)
 ```powershell

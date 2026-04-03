@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecOps | Advanced Port Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #7f00ff;
+            --bg: #0b0e14;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(127, 0, 255, 0.05) 0%, transparent 40%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        .scanner-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.1);
+        }
+
+        .btn-scan {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(0, 242, 254, 0.4);
+        }
+
+        .btn-scan:active {
+            transform: translateY(0);
+        }
+
+        .btn-scan:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            margin-top: 40px;
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        .results-table th {
+            text-align: left;
+            padding: 12px 20px;
+            color: var(--text-dim);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .results-table tr {
+            background: rgba(255, 255, 255, 0.03);
+            transition: background 0.2s;
+        }
+
+        .results-table tr:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .results-table td {
+            padding: 16px 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .results-table td:first-child {
+            border-radius: 12px 0 0 12px;
+            font-weight: 700;
+        }
+
+        .results-table td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-open { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .status-closed { background: rgba(239, 68, 68, 0.1); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-filtered { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 32px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SecOps Scanner</h1>
+            <p class="subtitle">High-performance network reconnaissance engine</p>
+        </header>
+
+        <main>
+            <div class="scanner-card">
+                <form id="scanForm">
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="target">Target Host</label>
+                            <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required value="localhost">
+                        </div>
+                        <div class="form-group">
+                            <label for="range">Port Range</label>
+                            <input type="text" id="range" placeholder="e.g., 1-1024" required value="1-500">
+                        </div>
+                        <div class="form-group">
+                            <label for="scan_type">Scan Type</label>
+                            <select id="scan_type">
+                                <option value="tcp">TCP Connect</option>
+                                <option value="syn">TCP SYN (Full)</option>
+                                <option value="udp">UDP Protocol</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-scan" id="scanBtn">
+                        <span id="btnText">Execute Scan</span>
+                        <div class="loader" id="loader"></div>
+                    </button>
+                </form>
+
+                <div class="stats" id="statsPanel" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total Scanned</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color: var(--success);" id="statOpen">0</div>
+                        <div class="stat-label">Ports Open</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTime">0ms</div>
+                        <div class="stat-label">Scan Speed</div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="results-section" id="resultsSection">
+                <div class="results-header">
+                    <h2>Scan Results</h2>
+                    <span id="resultsTarget" style="color: var(--text-dim); font-family: 'JetBrains Mono';"></span>
+                </div>
+                
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Port</th>
+                            <th>Protocol</th>
+                            <th>Service Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <!-- Results will be injected here -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const scanForm = document.getElementById('scanForm');
+        const scanBtn = document.getElementById('scanBtn');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btnText');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsBody = document.getElementById('resultsBody');
+        const resultsTarget = document.getElementById('resultsTarget');
+        const statsPanel = document.getElementById('statsPanel');
+
+        scanForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const target = document.getElementById('target').value;
+            const range = document.getElementById('range').value;
+            const scan_type = document.getElementById('scan_type').value;
+
+            // UI Feedback
+            startLoading();
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target, range, scan_type })
+                });
+
+                if (!response.ok) throw new Error('Scan failed');
+
+                const data = await response.json();
+                const endTime = performance.now();
+                
+                renderResults(data, Math.round(endTime - startTime));
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                stopLoading();
+            }
+        });
+
+        function startLoading() {
+            scanBtn.disabled = true;
+            loader.style.display = 'block';
+            btnText.innerText = 'Scanning...';
+            resultsSection.style.display = 'none';
+        }
+
+        function stopLoading() {
+            scanBtn.disabled = false;
+            loader.style.display = 'none';
+            btnText.innerText = 'Execute Scan';
+        }
+
+        function renderResults(data, duration) {
+            resultsBody.innerHTML = '';
+            resultsTarget.innerText = `Target: ${data.target}`;
+            
+            let openCount = 0;
+            
+            // Only show open ports by default, or all if none are open?
+            // Let's show all for now since it's a small range usually
+            data.ports.forEach(p => {
+                if (p.status === 'Open') openCount++;
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.port}</td>
+                    <td>${p.protocol}</td>
+                    <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
+                `;
+                resultsBody.appendChild(tr);
+            });
+
+            // Stats
+            document.getElementById('statTotal').innerText = data.ports.length;
+            document.getElementById('statOpen').innerText = openCount;
+            document.getElementById('statTime').innerText = `${duration}ms`;
+            
+            statsPanel.style.display = 'grid';
+            resultsSection.style.display = 'block';
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Open': return 'status-open';
+                case 'Closed': return 'status-closed';
+                case 'Filtered': return 'status-filtered';
+                default: return '';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ mod output;
 mod tcp_connect;
 mod tcp_syn;
 mod udp;
+mod server;
 
 use clap::{Parser, Subcommand, Args as ClapArgs};
 use futures::stream::{self, StreamExt};
@@ -23,6 +24,11 @@ enum Commands {
     Pentest {
         #[command(subcommand)]
         tool: PentestCommands,
+    },
+    /// Start the web UI server
+    Web {
+        #[arg(long, default_value = "3000")]
+        port: u16,
     },
 }
 
@@ -69,34 +75,37 @@ async fn main() {
     
     match cli.command {
         Commands::Pentest { tool } => match tool {
-            PentestCommands::PortScan(args) => run_port_scan(args).await,
+            PentestCommands::PortScan(args) => {
+                let res = run_port_scan_logic(args.target.clone(), args.range.clone(), args.syn, args.udp, args.timeout).await;
+                output::print_results(&res, &args.format);
+            },
         },
+        Commands::Web { port } => server::start_server(port).await,
     }
 }
 
-async fn run_port_scan(args: ScanArgs) {
+pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> ScanResult {
     // Determine scan type based on flags
-    let scan_type = if args.syn {
+    let scan_type = if syn {
         ScanType::Syn
-    } else if args.udp {
+    } else if udp {
         ScanType::Udp
     } else {
         ScanType::Connect // Default
     };
 
     // Parse target
-    let target_ip = resolve_target(&args.target);
+    let target_ip = resolve_target(&target);
     if target_ip.is_none() {
-        eprintln!("Failed to resolve target: {}", args.target);
-        std::process::exit(1);
+        return ScanResult { target: target.clone(), ports: vec![] };
     }
     let target_ip = target_ip.unwrap();
 
     // Parse port range
-    let ports = parse_ports(&args.range);
+    let ports = parse_ports(&range);
 
     // Timeout duration
-    let timeout_dur = Duration::from_millis(args.timeout);
+    let timeout_dur = Duration::from_millis(timeout_ms);
 
     // Parallel stream for scanning
     let concurrency_limit = 500;
@@ -118,12 +127,10 @@ async fn run_port_scan(args: ScanArgs) {
     // Sort by port
     results.sort_by(|a, b| a.port.cmp(&b.port));
 
-    let scan_res = ScanResult {
-        target: args.target.clone(),
+    ScanResult {
+        target,
         ports: results,
-    };
-
-    output::print_results(&scan_res, &args.format);
+    }
 }
 
 // Simple port range parser. Handles "80" or "1-1024".
