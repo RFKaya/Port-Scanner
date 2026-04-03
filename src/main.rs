@@ -13,7 +13,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.4.3", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.4.5", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -171,15 +171,14 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
         
         let sub_parts: Vec<&str> = part_str.split('-').collect();
         if sub_parts.len() == 2 {
-            let start: u32 = sub_parts[0].parse().unwrap_or(1);
-            let end: u32 = sub_parts[1].parse().unwrap_or(65535);
-            
-            // Clamp to valid port ranges
-            let start_clamped = start.max(1).min(65535) as u16;
-            let end_clamped = end.max(1).min(65535) as u16;
-            
-            for p in start_clamped..=end_clamped {
-                ports.push(p);
+            if let (Ok(start), Ok(end)) = (sub_parts[0].parse::<u32>(), sub_parts[1].parse::<u32>()) {
+                // Clamp to valid port ranges
+                let start_clamped = start.max(1).min(65535) as u16;
+                let end_clamped = end.max(1).min(65535) as u16;
+                
+                for p in start_clamped..=end_clamped {
+                    ports.push(p);
+                }
             }
         } else if sub_parts.len() == 1 {
             if let Ok(p) = sub_parts[0].parse::<u32>() {
@@ -212,4 +211,46 @@ fn resolve_target(target: &str) -> Option<IpAddr> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_ports_single() {
+        assert_eq!(parse_ports("80"), vec![80]);
+    }
+
+    #[test]
+    fn test_parse_ports_range() {
+        assert_eq!(parse_ports("1-5"), vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_parse_ports_mixed() {
+        assert_eq!(parse_ports("80,443,10-12"), vec![10, 11, 12, 80, 443]);
+    }
+
+    #[test]
+    fn test_parse_ports_overlap_and_unsorted() {
+        assert_eq!(parse_ports("80,70-85,22"), vec![22, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]);
+    }
+
+    #[test]
+    fn test_parse_ports_invalid() {
+        assert_eq!(parse_ports("abc, 70000, -1"), Vec::<u16>::new());
+    }
+
+    #[test]
+    fn test_resolve_target_ip() {
+        assert!(resolve_target("127.0.0.1").is_some());
+        assert!(resolve_target("::1").is_some());
+    }
+
+    #[test]
+    fn test_resolve_target_localhost() {
+        // This might fail in some restricted environments, but usually works
+        assert!(resolve_target("localhost").is_some());
+    }
 }

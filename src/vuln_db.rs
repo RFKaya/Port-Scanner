@@ -80,3 +80,33 @@ pub fn get_vuln_for_port(port: u16) -> Option<VulnerabilityInfo> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::RiskLevel;
+
+    #[test]
+    fn test_get_vuln_for_port_known() {
+        let telnet = get_vuln_for_port(23).unwrap();
+        assert_eq!(telnet.risk, RiskLevel::Critical);
+        assert!(telnet.name.contains("Telnet"));
+
+        let ssh = get_vuln_for_port(22).unwrap();
+        assert_eq!(ssh.risk, RiskLevel::Low);
+        assert!(ssh.name.contains("SSH"));
+    }
+
+    #[test]
+    fn test_get_vuln_for_port_unknown() {
+        assert!(get_vuln_for_port(12345).is_none());
+    }
+
+    #[test]
+    fn test_get_vuln_multiple_ports() {
+        // SMB ports
+        assert!(get_vuln_for_port(135).is_some());
+        assert!(get_vuln_for_port(139).is_some());
+        assert!(get_vuln_for_port(445).is_some());
+    }
+}
