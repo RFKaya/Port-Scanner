@@ -102,7 +102,8 @@ pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: 
     let target_ip = target_ip.unwrap();
 
     // Parse port range
-    let ports = parse_ports(&range);
+    let range_to_use = if range.is_empty() { "1-1024" } else { &range };
+    let ports = parse_ports(range_to_use);
 
     // Timeout duration
     let timeout_dur = Duration::from_millis(timeout_ms);
