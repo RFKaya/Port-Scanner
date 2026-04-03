@@ -13,7 +13,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.4.2", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.4.3", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -68,6 +68,10 @@ struct ScanArgs {
     /// Timeout in milliseconds per port
     #[arg(long, default_value_t = 1000)]
     timeout: u64,
+
+    /// Number of concurrent tasks (default: 500)
+    #[arg(short = 'c', long, default_value_t = 500)]
+    concurrency: usize,
 }
 
 #[tokio::main]
@@ -77,7 +81,14 @@ async fn main() {
     match cli.command {
         Commands::Pentest { tool } => match tool {
             PentestCommands::PortScan(args) => {
-                let res = run_port_scan_logic(args.target.clone(), args.range.clone(), args.syn, args.udp, args.timeout).await;
+                let res = run_port_scan_logic(
+                    args.target.clone(), 
+                    args.range.clone(), 
+                    args.syn, 
+                    args.udp, 
+                    args.timeout,
+                    args.concurrency
+                ).await;
                 output::print_results(&res, &args.format);
             },
         },
@@ -85,7 +96,7 @@ async fn main() {
     }
 }
 
-pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> futures::stream::BoxStream<'static, PortResult> {
+pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency_limit: usize) -> futures::stream::BoxStream<'static, PortResult> {
     use tokio::sync::mpsc;
     use tokio_stream::wrappers::ReceiverStream;
 
@@ -111,7 +122,6 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
 
     // Timeout duration
     let timeout_dur = Duration::from_millis(timeout_ms);
-    let concurrency_limit = 500;
 
     let (tx, rx) = mpsc::channel(100);
 
@@ -141,8 +151,8 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
     ReceiverStream::new(rx).boxed()
 }
 
-pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64) -> ScanResult {
-    let mut stream = run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms).await;
+pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency: usize) -> ScanResult {
+    let mut stream = run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms, concurrency).await;
     let mut results = Vec::new();
     while let Some(res) = stream.next().await {
         results.push(res);

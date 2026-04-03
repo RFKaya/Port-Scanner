@@ -23,9 +23,12 @@ pub struct ScanRequest {
     scan_type: String, // "tcp", "syn", "udp"
     #[serde(default = "default_timeout")]
     timeout: u64,
+    #[serde(default = "default_concurrency")]
+    concurrency: usize,
 }
 
 fn default_timeout() -> u64 { 1000 }
+fn default_concurrency() -> usize { 500 }
 
 pub async fn start_server(port: u16) {
     let app = Router::new()
@@ -60,6 +63,7 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Json<ScanResult> {
         syn,
         udp,
         payload.timeout,
+        payload.concurrency,
     ).await;
     
     // Klasörün varlığından emin ol
@@ -97,6 +101,7 @@ async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futur
         syn,
         udp,
         payload.timeout,
+        payload.concurrency,
     ).await;
 
     // Arka planda taramayı tamamlayıp diske kaydedecek bir görev başlatalım
@@ -107,6 +112,7 @@ async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futur
             syn,
             udp,
             timeout_save,
+            payload.concurrency,
         ).await;
 
         let _ = fs::create_dir_all("scans");

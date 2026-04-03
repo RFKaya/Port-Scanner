@@ -84,7 +84,7 @@
 
         .input-grid {
             display: grid;
-            grid-template-columns: 1.5fr 1.3fr 1.3fr 0.9fr 1.2fr;
+            grid-template-columns: 1.2fr 1fr 1fr 0.7fr 1fr 0.8fr;
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -787,6 +787,10 @@
                                     <option value="udp">UDP Protocol</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label for="concurrency">Concurrency</label>
+                                <input type="number" id="concurrency" placeholder="500" min="1" max="5000" value="500">
+                            </div>
                         </div>
 
                         <button type="submit" class="btn-scan" id="scanBtn">
@@ -801,7 +805,7 @@
 
                     <div class="terminal-preview" id="terminalPreview">
                         <div class="terminal-label">CLI Equivalent</div>
-                        cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
+                        cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span> <span id="cmdConcurrency"></span></span>
                     </div>
 
                     <div class="options-bar">
@@ -943,6 +947,7 @@
         const statusFilterGroup = document.getElementById('statusFilterGroup');
         const historyList = document.getElementById('historyList');
         const historyTabBtn = document.getElementById('historyTabBtn');
+        const cmdConcurrency = document.getElementById('cmdConcurrency');
 
         let statusChart = null;
         let chartCounts = { 'Open': 0, 'Closed': 0, 'Filtered': 0 };
@@ -1089,6 +1094,7 @@
             const range = document.getElementById('range').value;
             const scan_type = document.getElementById('scan_type').value;
             const timeout = parseInt(document.getElementById('timeout').value) || 1000;
+            const concurrency = parseInt(document.getElementById('concurrency').value) || 500;
 
             // Strict Validation
             if (range && range.trim() !== '') {
@@ -1135,7 +1141,7 @@
                 const response = await fetch('/api/scan/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target, range, scan_type, timeout })
+                    body: JSON.stringify({ target, range, scan_type, timeout, concurrency })
                 });
 
                 if (!response.ok) throw new Error('Scan failed with status ' + response.status);
@@ -1313,13 +1319,21 @@
                 cmdTimeout.style.display = 'none';
             }
 
+            const concurrency = document.getElementById('concurrency').value;
+            if (concurrency && concurrency !== '500') {
+                cmdConcurrency.innerText = `-c ${concurrency}`;
+                cmdConcurrency.style.display = 'inline';
+            } else {
+                cmdConcurrency.style.display = 'none';
+            }
+
             let flag = '';
             if (scan_type === 'syn') flag = '--syn';
             if (scan_type === 'udp') flag = '--udp';
             cmdFlag.innerText = flag;
         };
 
-        ['target', 'range', 'scan_type', 'timeout'].forEach(id => {
+        ['target', 'range', 'scan_type', 'timeout', 'concurrency'].forEach(id => {
             const el = document.getElementById(id);
             el.addEventListener('input', updateCommand);
             el.addEventListener('change', updateCommand);
