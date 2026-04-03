@@ -12,7 +12,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version, about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.1.0", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -139,14 +139,21 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
     let mut ports = Vec::new();
     let parts: Vec<&str> = range_str.split('-').collect();
     if parts.len() == 2 {
-        let start: u16 = parts[0].parse().unwrap_or(1);
-        let end: u16 = parts[1].parse().unwrap_or(1024);
-        for p in start..=end {
+        let start: u32 = parts[0].parse().unwrap_or(1);
+        let end: u32 = parts[1].parse().unwrap_or(65535);
+        
+        // Clamp to valid port ranges
+        let start_clamped = start.max(1).min(65535) as u16;
+        let end_clamped = end.max(1).min(65535) as u16;
+        
+        for p in start_clamped..=end_clamped {
             ports.push(p);
         }
     } else if parts.len() == 1 {
-        if let Ok(p) = parts[0].parse() {
-            ports.push(p);
+        if let Ok(p) = parts[0].parse::<u32>() {
+            if p >= 1 && p <= 65535 {
+                ports.push(p as u16);
+            }
         }
     }
     ports
