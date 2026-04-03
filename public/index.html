@@ -820,14 +820,34 @@
         const cmdTimeout = document.getElementById('cmdTimeout');
 
         const PORT_SERVICES = {
-            20: "FTP-Data", 21: "FTP", 22: "SSH/SFTP", 23: "Telnet", 25: "SMTP",
-            53: "DNS", 80: "HTTP (Web)", 110: "POP3", 143: "IMAP", 443: "HTTPS (Secure Web)",
-            445: "SMB/Microsoft-DS", 993: "IMAPS", 995: "POP3S", 1080: "SOCKS Proxy",
-            1433: "MSSQL", 1521: "Oracle DB", 2049: "NFS", 3000: "Dev Server (React/Vue)",
-            3306: "MySQL/MariaDB", 3389: "RDP (Remote Desktop)", 5000: "Flask/Docker",
-            5432: "PostgreSQL", 5900: "VNC", 6379: "Redis", 8000: "Dev/HTTP Alt",
-            8080: "HTTP Proxy/Alternative", 8443: "HTTPS Alternative", 9000: "PHP-FPM/SonarQube",
-            9092: "Kafka", 27017: "MongoDB", 27018: "MongoDB Shard", 50000: "SAP/IBM DB2"
+            1: "TCPSUX (TCPmux)", 7: "Echo", 9: "Discard", 13: "Daytime", 17: "Quote of the Day",
+            19: "Chargen", 20: "FTP-Data", 21: "FTP (Control)", 22: "SSH/SFTP", 23: "Telnet",
+            25: "SMTP (Mail)", 37: "Time", 42: "WINS Replication", 43: "Whois", 49: "TACACS+",
+            53: "DNS", 67: "DHCP (Server)", 68: "DHCP (Client)", 69: "TFTP", 70: "Gopher",
+            79: "Finger", 80: "HTTP (Web)", 88: "Kerberos", 102: "ISO-TSAP", 110: "POP3",
+            111: "RPCBind", 113: "Ident", 119: "NNTP (News)", 123: "NTP", 135: "RPC Endpoint Mapper",
+            137: "NetBIOS Name Svc", 138: "NetBIOS Datagram", 139: "NetBIOS Session", 143: "IMAP",
+            161: "SNMP", 162: "SNMP-Trap", 179: "BGP", 194: "IRC", 201: "AppleTalk",
+            389: "LDAP", 443: "HTTPS (Secure Web)", 445: "SMB (Microsoft-DS)", 464: "Kerberos Password",
+            465: "SMTPS (Secure Mail)", 500: "ISAKMP (VPN)", 512: "Exec/Rexec", 513: "Login/Rlogin",
+            514: "Shell/Syslog", 515: "LPD (Printer)", 520: "RIP", 543: "KLogin", 544: "KShell",
+            548: "AFP (Apple Filing)", 554: "RTSP", 587: "SMTP (Submission)", 631: "IPP (CUPS)",
+            636: "LDAPS", 830: "NETCONF", 873: "Rsync", 902: "VMware Server", 989: "FTPS-Data",
+            990: "FTPS (Control)", 992: "TelnetS", 993: "IMAPS", 995: "POP3S", 1080: "SOCKS Proxy",
+            1194: "OpenVPN", 1241: "Nessus", 1311: "Dell OpenManage", 1433: "MSSQL", 1434: "MSSQL-Monitor",
+            1521: "Oracle DB", 1701: "L2TP", 1720: "H.323", 1723: "PPTP", 1812: "RADIUS (Auth)",
+            1813: "RADIUS (Acct)", 1900: "UPnP", 2000: "Cisco Skinny", 2049: "NFS", 2121: "FTP Proxy",
+            2222: "EtherNet/IP / SSH Alt", 2375: "Docker (Unsecure)", 2376: "Docker (Secure)", 2483: "Oracle GIPC",
+            3000: "Dev Server (React/Vue/Node)", 3260: "iSCSI", 3268: "LDAP GC", 3306: "MySQL/MariaDB",
+            3389: "RDP (Remote Desktop)", 3690: "SVN", 4000: "ICQ / Diablo", 4444: "Metasploit Default",
+            4848: "GlassFish", 5000: "Flask / Docker Registry", 5060: "SIP (VoIP)", 5061: "SIPS (VoIP)",
+            5432: "PostgreSQL", 5500: "VNC Listener", 5631: "pcAnywhere", 5666: "NRPE (Nagios)",
+            5900: "VNC Server", 5901: "VNC Display 1", 5984: "CouchDB", 5985: "WinRM (HTTP)",
+            5986: "WinRM (HTTPS)", 6379: "Redis", 6667: "IRC Default", 7000: "Cassandra / Redis Cluster",
+            7077: "Apache Spark", 8000: "Dev Web Alt / Django", 8008: "HTTP Alt", 8080: "HTTP Proxy / Tomcat",
+            8081: "HTTP Alt", 8443: "HTTPS Alt / Plesk", 8888: "Jupyter / MAMP", 9000: "PHP-FPM / Portainer",
+            9090: "Cockpit / Prometheus", 9092: "Kafka", 9100: "JetDirect (Printer)", 9200: "Elasticsearch",
+            10000: "Webmin / Control Panel", 27017: "MongoDB", 32400: "Plex Media Server", 50000: "SAP / IBM DB2"
         };
 
         const getService = (port) => PORT_SERVICES[port] || "-";
