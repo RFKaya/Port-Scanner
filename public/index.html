@@ -80,12 +80,12 @@
 
         .input-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 2fr 1.2fr 1fr 1.2fr;
+            gap: 16px;
             margin-bottom: 24px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 850px) {
             .input-grid {
                 grid-template-columns: 1fr;
             }
@@ -98,7 +98,7 @@
         }
 
         label {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             font-weight: 600;
             color: var(--text-dim);
             text-transform: uppercase;
@@ -109,12 +109,13 @@
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 12px 16px;
+            padding: 12px 14px;
             color: var(--text);
-            font-size: 1rem;
+            font-size: 0.9375rem;
             transition: all 0.2s;
             font-family: inherit;
             cursor: pointer;
+            width: 100%;
         }
 
         select option {
@@ -362,6 +363,10 @@
                             <input type="text" id="range" placeholder="e.g., 1-1024 (Default)">
                         </div>
                         <div class="form-group">
+                            <label for="timeout">Timeout</label>
+                            <input type="number" id="timeout" placeholder="1000" min="1" value="1000">
+                        </div>
+                        <div class="form-group">
                             <label for="scan_type">Scan Type</label>
                             <select id="scan_type">
                                 <option value="tcp">TCP Connect</option>
@@ -377,7 +382,7 @@
                     </button>
                 </form>
 
-                <div class="terminal-preview" id="terminalPreview"><div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdFlag"></span></span></div>
+                <div class="terminal-preview" id="terminalPreview"><div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span></div>
 
                 <div class="options-bar">
                     <label class="checkbox-group">
@@ -440,6 +445,7 @@
         const cmdTarget = document.getElementById('cmdTarget');
         const cmdRangeGroup = document.getElementById('cmdRangeGroup');
         const cmdFlag = document.getElementById('cmdFlag');
+        const cmdTimeout = document.getElementById('cmdTimeout');
 
         let lastScanData = null;
 
@@ -449,6 +455,7 @@
             const target = document.getElementById('target').value;
             const range = document.getElementById('range').value;
             const scan_type = document.getElementById('scan_type').value;
+            const timeout = parseInt(document.getElementById('timeout').value) || 1000;
 
             startLoading();
             const startTime = performance.now();
@@ -457,7 +464,7 @@
                 const response = await fetch('/api/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target, range, scan_type })
+                    body: JSON.stringify({ target, range, scan_type, timeout })
                 });
 
                 if (!response.ok) throw new Error('Scan failed');
@@ -473,20 +480,26 @@
             }
         });
 
-        // Real-time CLI Command Generator
         const updateCommand = () => {
             const target = document.getElementById('target').value || 'localhost';
             const range = document.getElementById('range').value;
             const scan_type = document.getElementById('scan_type').value;
+            const timeout = document.getElementById('timeout').value;
             
             cmdTarget.innerText = target;
             
-            // Handle range conditionally
             if (range && range.trim() !== '') {
                 cmdRangeGroup.innerText = `--range ${range}`;
                 cmdRangeGroup.style.display = 'inline';
             } else {
                 cmdRangeGroup.style.display = 'none';
+            }
+
+            if (timeout && timeout !== '1000') {
+                cmdTimeout.innerText = `--timeout ${timeout}`;
+                cmdTimeout.style.display = 'inline';
+            } else {
+                cmdTimeout.style.display = 'none';
             }
             
             let flag = '';
@@ -495,9 +508,10 @@
             cmdFlag.innerText = flag;
         };
 
-        ['target', 'range', 'scan_type'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateCommand);
-            document.getElementById(id).addEventListener('change', updateCommand);
+        ['target', 'range', 'scan_type', 'timeout'].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', updateCommand);
+            el.addEventListener('change', updateCommand);
         });
 
         updateCommand();
