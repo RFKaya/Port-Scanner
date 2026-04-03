@@ -15,18 +15,19 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
             port,
             protocol: "TCP".to_string(),
             status: PortStatus::Open,
+            vulnerability: None,
         },
         Ok(Err(_e)) => PortResult {
-            // Connection refused or comparable error
             port,
             protocol: "TCP".to_string(),
             status: PortStatus::Closed,
+            vulnerability: None,
         },
         Err(_) => PortResult {
-            // Timeout means we likely got silently dropped (Filtered)
             port,
             protocol: "TCP".to_string(),
             status: PortStatus::Filtered,
+            vulnerability: None,
         },
     }
 }

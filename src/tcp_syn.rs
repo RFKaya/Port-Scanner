@@ -16,6 +16,7 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
         port,
         protocol: "TCP-SYN.ERR".to_string(),
         status: PortStatus::Filtered,
+        vulnerability: None,
     })
 }
 
@@ -29,6 +30,7 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
                 port,
                 protocol: "TCP-SYN (IPv4 Only)".to_string(),
                 status: PortStatus::Filtered,
+                vulnerability: None,
             }
         }
     };
@@ -44,6 +46,7 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
                 port,
                 protocol: "TCP-SYN".to_string(),
                 status: PortStatus::Filtered, // Or Permission Denied state
+                vulnerability: None,
             };
         }
     };
@@ -71,7 +74,7 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
 
     // Send packet
     if tx.send_to(tcp_packet, target).is_err() {
-        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered };
+        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered, vulnerability: None };
     }
 
     let mut rx_iter = tcp_packet_iter(&mut rx);
@@ -80,7 +83,7 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
     // Wait for response
     loop {
         if start.elapsed() > timeout_dur {
-            return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered };
+            return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered, vulnerability: None };
         }
 
         // We use standard next(). In a blocking queue, this may block until a packet arrives,
@@ -91,13 +94,13 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
                 if resp_packet.get_destination() == source_port && resp_packet.get_source() == port {
                     let flags = resp_packet.get_flags();
                     if flags & (TcpFlags::SYN | TcpFlags::ACK) == (TcpFlags::SYN | TcpFlags::ACK) {
-                        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Open };
+                        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Open, vulnerability: None };
                     } else if flags & TcpFlags::RST == TcpFlags::RST {
-                        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Closed };
+                        return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Closed, vulnerability: None };
                     }
                 }
             },
-            Err(_) => return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered },
+            Err(_) => return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered, vulnerability: None },
         }
     }
 }

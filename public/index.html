@@ -418,6 +418,78 @@
             border-radius: 50%;
         }
 
+        /* Vulnerability Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-none { display: none; }
+        .badge-low { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-high { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: 0 0 10px rgba(239, 68, 68, 0.1); }
+        .badge-critical { 
+            background: #ef4444; 
+            color: #fff; 
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+            animation: pulse-red 2s infinite; 
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .vuln-icon {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.2s;
+        }
+
+        .vuln-icon:hover { transform: scale(1.05); }
+
+        /* Modal / Details Window */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            padding: 32px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px; right: 20px;
+            cursor: pointer;
+            color: var(--text-dim);
+        }
+
+        .modal-header { margin-bottom: 20px; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+        .modal-risk-label { margin-bottom: 20px; }
+        .modal-body { color: var(--text-dim); line-height: 1.6; }
+        .modal-footer { margin-top: 32px; display: flex; justify-content: flex-end; }
+
         .stat-value {
             font-size: 1.5rem;
             font-weight: 700;
@@ -686,8 +758,7 @@
                         <div class="input-grid">
                             <div class="form-group">
                                 <label for="target">Target Host</label>
-                                <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required
-                                    value="localhost">
+                                <input type="text" id="target" placeholder="e.g., google.com or 1.1.1.1" required value="localhost">
                             </div>
                             <div class="form-group">
                                 <label for="preset">Scan Profile</label>
@@ -697,9 +768,7 @@
                                     <option value="1-1024">Standard (1-1024)</option>
                                     <option value="1-65535">Full Scan (1-65535)</option>
                                     <option value="80,443,8080,8443">Web Ports</option>
-                                    <option
-                                        value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">
-                                        Common Vulnerable</option>
+                                    <option value="21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5900,8080">Common Vulnerable</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -724,19 +793,15 @@
                             <span id="btnText">Execute Scan</span>
                             <div class="loader" id="loader"></div>
                         </button>
-                        <div class="progress-bar-container"
-                            style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;"
-                            id="progressContainer">
-                            <div class="progress-bar"
-                                style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);"
-                                id="scanProgress"></div>
+                        
+                        <div class="progress-bar-container" style="display: none; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px;" id="progressContainer">
+                            <div class="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary);" id="scanProgress"></div>
                         </div>
                     </form>
 
                     <div class="terminal-preview" id="terminalPreview">
-                        <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span
-                                id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span
-                                id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
+                        <div class="terminal-label">CLI Equivalent</div>
+                        cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
                     </div>
 
                     <div class="options-bar">
@@ -774,6 +839,13 @@
                                 <div class="stat-item-value" id="statFiltered">0</div>
                             </div>
                             <div class="stat-item">
+                                <div class="stat-item-label">
+                                    <div class="dot" style="background: #ef4444;"></div>
+                                    Critical Risks
+                                </div>
+                                <div class="stat-item-value" style="color: #ef4444;" id="statRisks">0</div>
+                            </div>
+                            <div class="stat-item">
                                 <div class="stat-item-label">Execution Time</div>
                                 <div class="stat-item-value" style="color: var(--secondary);" id="statTime">0ms</div>
                             </div>
@@ -784,18 +856,15 @@
 
             <div id="history-tab" class="tab-content">
                 <div class="history-list" id="historyList">
-                    <!-- History items will be injected here -->
                     <div class="empty-history">Geçmiş tarama bulunmamaktadır.</div>
                 </div>
             </div>
 
             <section class="results-section" id="resultsSection">
-                <div class="results-header"
-                    style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;">
+                <div class="results-header" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <h2 style="margin: 0;">Scan Results</h2>
-                        <span id="resultsTarget"
-                            style="color: var(--text-dim); font-family: 'JetBrains Mono'; font-size: 0.875rem;"></span>
+                        <span id="resultsTarget" style="color: var(--text-dim); font-family: 'JetBrains Mono'; font-size: 0.875rem;"></span>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="display: flex; gap: 8px; margin-right: 10px;" id="statusFilterGroup">
@@ -812,11 +881,8 @@
                                 <span>Filtered</span>
                             </div>
                         </div>
-                        <input type="text" id="searchInput" placeholder="Search port or service..."
-                            style="width: 200px; background: rgba(0,0,0,0.3); padding: 8px 12px;">
-                        <button id="exportCsvBtn"
-                            style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export
-                            CSV</button>
+                        <input type="text" id="searchInput" placeholder="Search port or service..." style="width: 200px; background: rgba(0,0,0,0.3); padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+                        <button id="exportCsvBtn" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export CSV</button>
                     </div>
                 </div>
 
@@ -825,7 +891,7 @@
                         <tr>
                             <th>Port</th>
                             <th>Protocol</th>
-                            <th>Known Service</th>
+                            <th colspan="2">Service & Security</th>
                             <th>Service Status</th>
                         </tr>
                     </thead>
@@ -838,8 +904,25 @@
     </div>
 
     <!-- Toast Container -->
-    <div id="toastContainer"
-        style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;">
+    <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
+
+    <!-- Modal Container -->
+    <div class="modal-overlay" id="vulnModalOverlay">
+        <div class="modal">
+            <div class="modal-close" onclick="closeModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Vulnerability Name</div>
+                <div class="modal-risk-badge" id="modalRiskBadge">CRITICAL</div>
+            </div>
+            <div class="modal-body" id="modalBody">
+                Vulnerability details and description go here.
+            </div>
+            <div class="modal-footer">
+                <button class="btn-scan" style="padding: 10px 20px; width: auto;" onclick="closeModal()">Close</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -863,6 +946,19 @@
 
         let statusChart = null;
         let chartCounts = { 'Open': 0, 'Closed': 0, 'Filtered': 0 };
+        let riskCount = 0;
+
+        function showVulnDetails(name, risk, desc) {
+            document.getElementById('modalTitle').innerText = name;
+            document.getElementById('modalRiskBadge').innerText = risk;
+            document.getElementById('modalRiskBadge').className = 'badge badge-' + risk.toLowerCase();
+            document.getElementById('modalBody').innerText = desc;
+            document.getElementById('vulnModalOverlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('vulnModalOverlay').style.display = 'none';
+        }
 
         function initChart() {
             const ctx = document.getElementById('statusChart').getContext('2d');
@@ -1022,6 +1118,7 @@
             };
 
             let openCount = 0;
+            riskCount = 0;
             chartCounts = { 'Open': 0, 'Closed': 0, 'Filtered': 0 };
             resultsBody.innerHTML = '';
             resultsTarget.innerText = `Target: ${target}`;
@@ -1029,6 +1126,7 @@
             document.getElementById('statOpen').innerText = '0';
             document.getElementById('statClosed').innerText = '0';
             document.getElementById('statFiltered').innerText = '0';
+            document.getElementById('statRisks').innerText = '0';
             resultsSection.style.display = 'block';
             statsPanel.style.display = 'grid';
             initChart();
@@ -1062,12 +1160,19 @@
 
                                 // Update Stats
                                 chartCounts[portRes.status]++;
-                                if (portRes.status === 'Open') openCount++;
+                                if (portRes.status === 'Open') {
+                                    openCount++;
+                                    if (portRes.vulnerability && 
+                                       (portRes.vulnerability.risk === 'High' || portRes.vulnerability.risk === 'Critical')) {
+                                        riskCount++;
+                                    }
+                                }
                                 
                                 document.getElementById('statTotal').innerText = currentResults.ports.length;
                                 document.getElementById('statOpen').innerText = openCount;
                                 document.getElementById('statClosed').innerText = chartCounts['Closed'];
                                 document.getElementById('statFiltered').innerText = chartCounts['Filtered'];
+                                document.getElementById('statRisks').innerText = riskCount;
                                 updateChart();
 
                                 // Update Progress Bar (Real Progress)
@@ -1119,6 +1224,20 @@
             const isActive = statusFilters[p.status];
 
             const serviceName = getService(p.port);
+            const vuln = p.vulnerability;
+            let vulnHtml = '-';
+            
+            if (vuln) {
+                const safeName = vuln.name.replace(/'/g, "\\'");
+                const safeDesc = vuln.description.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                vulnHtml = `
+                    <div class="vuln-icon" onclick="showVulnDetails('${safeName}', '${vuln.risk}', '${safeDesc}')">
+                        <span class="badge badge-${vuln.risk.toLowerCase()}">${vuln.risk}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-dim)"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </div>
+                `;
+            }
+
             const tr = document.createElement('tr');
             tr.dataset.port = p.port;
             tr.dataset.status = p.status;
@@ -1129,10 +1248,11 @@
             tr.style.display = searchMatch ? '' : 'none';
             
             tr.innerHTML = `
-                <td>${p.port}</td>
-                <td>${p.protocol}</td>
+                <td style="font-family: 'JetBrains Mono'; font-weight: 700;">${p.port}</td>
+                <td style="color: var(--text-dim); font-size: 0.8rem;">${p.protocol}</td>
                 <td style="color: var(--text-dim); font-size: 0.8125rem;">${serviceName}</td>
-                <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
+                <td style="width: 50px;">${vulnHtml === '-' ? '' : vulnHtml}</td>
+                <td><div class="status-badge ${getStatusClass(p.status)}">${p.status}</div></td>
             `;
 
             // Optimization: If it's the first row, just append
@@ -1265,28 +1385,45 @@
             resultsTarget.innerText = `Target: ${data.target}`;
 
             chartCounts = { 'Open': 0, 'Closed': 0, 'Filtered': 0 };
-            data.ports.forEach(p => chartCounts[p.status]++);
+            riskCount = 0;
+            data.ports.forEach(p => {
+                chartCounts[p.status]++;
+                if (p.status === 'Open' && p.vulnerability && 
+                   (p.vulnerability.risk === 'High' || p.vulnerability.risk === 'Critical')) {
+                    riskCount++;
+                }
+            });
+            
             initChart();
             updateChart();
-            statusChart.update(); // Final update with animation
+            statusChart.update();
 
-            // Sort data first: Open at top, then by port
             const statusPriority = { 'Open': 0, 'Closed': 1, 'Filtered': 2 };
             const sortedPorts = [...data.ports].sort((a, b) => {
                 const aPri = statusPriority[a.status] ?? 3;
                 const bPri = statusPriority[b.status] ?? 3;
-                
                 if (aPri !== bPri) return aPri - bPri;
                 return a.port - b.port;
             });
 
             const searchVal = searchInput.value.toLowerCase();
-            let openCount = 0;
 
             sortedPorts.forEach(p => {
-                if (p.status === 'Open') openCount++;
-
                 const serviceName = getService(p.port);
+                const vuln = p.vulnerability;
+                let vulnHtml = '-';
+                
+                if (vuln) {
+                    const safeName = vuln.name.replace(/'/g, "\\'");
+                    const safeDesc = vuln.description.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    vulnHtml = `
+                        <div class="vuln-icon" onclick="showVulnDetails('${safeName}', '${vuln.risk}', '${safeDesc}')">
+                            <span class="badge badge-${vuln.risk.toLowerCase()}">${vuln.risk}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-dim)"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        </div>
+                    `;
+                }
+
                 const tr = document.createElement('tr');
                 tr.dataset.port = p.port;
                 tr.dataset.status = p.status;
@@ -1296,10 +1433,11 @@
                 tr.style.display = searchMatch ? '' : 'none';
                 
                 tr.innerHTML = `
-                    <td>${p.port}</td>
-                    <td>${p.protocol}</td>
+                    <td style="font-family: 'JetBrains Mono'; font-weight: 700;">${p.port}</td>
+                    <td style="color: var(--text-dim); font-size: 0.8rem;">${p.protocol}</td>
                     <td style="color: var(--text-dim); font-size: 0.8125rem;">${serviceName}</td>
-                    <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
+                    <td style="width: 50px;">${vulnHtml === '-' ? '' : vulnHtml}</td>
+                    <td><div class="status-badge ${getStatusClass(p.status)}">${p.status}</div></td>
                 `;
                 resultsBody.appendChild(tr);
             });
@@ -1308,6 +1446,7 @@
             document.getElementById('statOpen').innerText = chartCounts['Open'];
             document.getElementById('statClosed').innerText = chartCounts['Closed'];
             document.getElementById('statFiltered').innerText = chartCounts['Filtered'];
+            document.getElementById('statRisks').innerText = riskCount;
             if (duration !== undefined) {
                 document.getElementById('statTime').innerText = `${duration}ms`;
             }

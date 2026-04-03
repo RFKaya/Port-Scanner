@@ -4,6 +4,7 @@ mod tcp_connect;
 mod tcp_syn;
 mod udp;
 mod server;
+mod vuln_db;
 
 use clap::{Parser, Subcommand, Args as ClapArgs};
 use futures::stream::{self, StreamExt};
@@ -12,7 +13,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.3.1", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.4.2", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -119,11 +120,17 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
             let st = scan_type.clone();
             let tx_inner = tx.clone();
             async move {
-                let res = match st {
+                let mut res = match st {
                     ScanType::Connect => tcp_connect::scan_port(target_ip, port, timeout_dur).await,
                     ScanType::Syn => tcp_syn::scan_port(target_ip, port, timeout_dur).await,
                     ScanType::Udp => udp::scan_port(target_ip, port, timeout_dur).await,
                 };
+
+                // If port is open, check for known vulnerabilities
+                if matches!(res.status, crate::models::PortStatus::Open) {
+                    res.vulnerability = vuln_db::get_vuln_for_port(port);
+                }
+
                 let _ = tx_inner.send(res).await;
             }
         }).buffer_unordered(concurrency_limit);

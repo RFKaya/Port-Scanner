@@ -20,19 +20,20 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
             port,
             protocol: "UDP".to_string(),
             status: PortStatus::Filtered, // Assume something blocked local bind
+            vulnerability: None,
         },
     };
 
     let target_addr = std::net::SocketAddr::new(target, port);
     if socket.connect(&target_addr).await.is_err() {
-         return PortResult { port, protocol: "UDP".to_string(), status: PortStatus::Closed };
+         return PortResult { port, protocol: "UDP".to_string(), status: PortStatus::Closed, vulnerability: None };
     }
 
     // Send an empty UDP payload. Some services might not respond to empty payloads,
     // but this is a simple scanner.
     let buf = [0u8; 0];
     if socket.send(&buf).await.is_err() {
-        return PortResult { port, protocol: "UDP".to_string(), status: PortStatus::Closed };
+        return PortResult { port, protocol: "UDP".to_string(), status: PortStatus::Closed, vulnerability: None };
     }
 
     // Try to receive a response
@@ -44,6 +45,7 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
                 port,
                 protocol: "UDP".to_string(),
                 status: PortStatus::Open,
+                vulnerability: None,
             }
         },
         Ok(Err(_)) => {
@@ -52,6 +54,7 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
                 port,
                 protocol: "UDP".to_string(),
                 status: PortStatus::Closed,
+                vulnerability: None,
             }
         },
         Err(_) => {
@@ -61,6 +64,7 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
                 port,
                 protocol: "UDP".to_string(),
                 status: PortStatus::Filtered,
+                vulnerability: None,
             }
         }
     }
