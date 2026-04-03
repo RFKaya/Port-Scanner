@@ -427,6 +427,62 @@
                 opacity: 0;
             }
         }
+        .status-filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-dim);
+            user-select: none;
+        }
+
+        .status-filter-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-filter-btn.active.filter-open {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .status-filter-btn.active.filter-closed {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .status-filter-btn.active.filter-filtered {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .status-filter-btn:not(.active) {
+            opacity: 0.4;
+            filter: grayscale(0.5);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Optimization: CSS-based status filtering */
+        #resultsBody.hide-Open tr[data-status="Open"] { display: none; }
+        #resultsBody.hide-Closed tr[data-status="Closed"] { display: none; }
+        #resultsBody.hide-Filtered tr[data-status="Filtered"] { display: none; }
     </style>
 </head>
 
@@ -497,10 +553,6 @@
                 </div>
 
                 <div class="options-bar">
-                    <label class="checkbox-group">
-                        <input type="checkbox" id="onlyOpenToggle">
-                        <span>Show Only Open Ports</span>
-                    </label>
                     <div id="quickInfo" style="color: var(--text-dim); font-size: 0.75rem;">Ready to scan</div>
                 </div>
 
@@ -528,11 +580,25 @@
                         <span id="resultsTarget"
                             style="color: var(--text-dim); font-family: 'JetBrains Mono'; font-size: 0.875rem;"></span>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 8px; margin-right: 10px;" id="statusFilterGroup">
+                            <div class="status-filter-btn active filter-open" data-status="Open">
+                                <div class="status-dot"></div>
+                                <span>Open</span>
+                            </div>
+                            <div class="status-filter-btn active filter-closed" data-status="Closed">
+                                <div class="status-dot"></div>
+                                <span>Closed</span>
+                            </div>
+                            <div class="status-filter-btn active filter-filtered" data-status="Filtered">
+                                <div class="status-dot"></div>
+                                <span>Filtered</span>
+                            </div>
+                        </div>
                         <input type="text" id="searchInput" placeholder="Search port or service..."
-                            style="width: 250px; background: rgba(0,0,0,0.3); padding: 8px 12px;">
+                            style="width: 200px; background: rgba(0,0,0,0.3); padding: 8px 12px;">
                         <button id="exportCsvBtn"
-                            style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export
+                            style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem;">Export
                             CSV</button>
                     </div>
                 </div>
@@ -573,8 +639,14 @@
         const resultsBody = document.getElementById('resultsBody');
         const resultsTarget = document.getElementById('resultsTarget');
         const statsPanel = document.getElementById('statsPanel');
-        const onlyOpenToggle = document.getElementById('onlyOpenToggle');
         const quickInfo = document.getElementById('quickInfo');
+        const statusFilterGroup = document.getElementById('statusFilterGroup');
+
+        let statusFilters = {
+            'Open': true,
+            'Closed': true,
+            'Filtered': true
+        };
 
         const cmdTarget = document.getElementById('cmdTarget');
         const cmdRangeGroup = document.getElementById('cmdRangeGroup');
@@ -727,20 +799,19 @@
 
         // Appends a single result to the table, keeping Open ports at the top and sorting numerically
         function appendResultSorted(p) {
-            const showOnlyOpen = onlyOpenToggle.checked;
             const searchVal = searchInput.value.toLowerCase();
-
-            if (showOnlyOpen && p.status !== 'Open') return;
+            const isActive = statusFilters[p.status];
 
             const serviceName = getService(p.port);
-            if (searchVal) {
-                const rowText = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
-                if (!rowText.includes(searchVal)) return;
-            }
-
             const tr = document.createElement('tr');
             tr.dataset.port = p.port;
             tr.dataset.status = p.status;
+            // Pre-calculate searchable text for performance
+            tr.dataset.search = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
+            
+            const searchMatch = !searchVal || tr.dataset.search.includes(searchVal);
+            tr.style.display = searchMatch ? '' : 'none';
+            
             tr.innerHTML = `
                 <td>${p.port}</td>
                 <td>${p.protocol}</td>
@@ -748,46 +819,38 @@
                 <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
             `;
 
-            const rows = Array.from(resultsBody.querySelectorAll('tr'));
-
-            let inserted = false;
-            // We want Open ports at top, Closed/Filtered below.
-            // Within each group, sort by port number.
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const rowPort = parseInt(row.dataset.port);
-                const rowStatus = row.dataset.status;
-
-                // Case 1: p is Open
-                if (p.status === 'Open') {
-                    if (rowStatus !== 'Open') {
-                        // Open ports always go before non-Open ports
-                        resultsBody.insertBefore(tr, row);
-                        inserted = true;
-                        break;
-                    } else if (p.port < rowPort) {
-                        // Both are Open, sort by port
-                        resultsBody.insertBefore(tr, row);
-                        inserted = true;
-                        break;
-                    }
-                }
-                // Case 2: p is not Open
-                else {
-                    if (rowStatus !== 'Open' && p.port < rowPort) {
-                        // Both are non-Open, sort by port
-                        resultsBody.insertBefore(tr, row);
-                        inserted = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!inserted) {
+            // Optimization: If it's the first row, just append
+            if (!resultsBody.firstElementChild) {
                 resultsBody.appendChild(tr);
+                return;
             }
-        }
 
+            // Find insertion point without converting to Array every time
+            let current = resultsBody.firstElementChild;
+            let inserted = false;
+            
+            while (current) {
+                const rowPort = parseInt(current.dataset.port);
+                const rowStatus = current.dataset.status;
+
+                let shouldInsertBefore = false;
+                if (p.status === 'Open') {
+                    if (rowStatus !== 'Open' || p.port < rowPort) shouldInsertBefore = true;
+                } else if (rowStatus !== 'Open' && p.port < rowPort) {
+                    shouldInsertBefore = true;
+                }
+
+                if (shouldInsertBefore) {
+                    resultsBody.insertBefore(tr, current);
+                    inserted = true;
+                    break;
+                }
+                current = current.nextElementSibling;
+            }
+
+            if (!inserted) resultsBody.appendChild(tr);
+        }
+    
         const updateCommand = () => {
             const target = document.getElementById('target').value || 'localhost';
             const range = document.getElementById('range').value;
@@ -836,11 +899,28 @@
             presetSelect.value = "";
         });
 
-        onlyOpenToggle.addEventListener('change', () => {
-            if (lastScanData) {
-                renderResults(lastScanData);
-            }
+        // Status filter button handlers
+        statusFilterGroup.querySelectorAll('.status-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const status = btn.dataset.status;
+                statusFilters[status] = !statusFilters[status];
+                btn.classList.toggle('active', statusFilters[status]);
+                
+                // Instant CSS toggle
+                resultsBody.classList.toggle(`hide-${status}`, !statusFilters[status]);
+            });
         });
+
+        function applyFilters() {
+            const searchVal = searchInput.value.toLowerCase();
+            const rows = resultsBody.children;
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const searchMatch = !searchVal || row.dataset.search.includes(searchVal);
+                row.style.display = searchMatch ? '' : 'none';
+            }
+        }
 
         function startLoading() {
             scanBtn.disabled = true;
@@ -871,28 +951,21 @@
                 return a.port - b.port;
             });
 
-            const showOnlyOpen = onlyOpenToggle.checked;
             const searchVal = searchInput.value.toLowerCase();
             let openCount = 0;
 
             sortedPorts.forEach(p => {
                 if (p.status === 'Open') openCount++;
 
-                if (showOnlyOpen && p.status !== 'Open') {
-                    return;
-                }
-
                 const serviceName = getService(p.port);
-
-                // Search filter
-                if (searchVal) {
-                    const rowText = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
-                    if (!rowText.includes(searchVal)) return;
-                }
-
                 const tr = document.createElement('tr');
                 tr.dataset.port = p.port;
                 tr.dataset.status = p.status;
+                tr.dataset.search = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
+
+                const searchMatch = !searchVal || tr.dataset.search.includes(searchVal);
+                tr.style.display = searchMatch ? '' : 'none';
+                
                 tr.innerHTML = `
                     <td>${p.port}</td>
                     <td>${p.protocol}</td>
@@ -922,7 +995,7 @@
         }
 
         searchInput.addEventListener('input', () => {
-            if (lastScanData) renderResults(lastScanData);
+            applyFilters();
         });
 
         exportCsvBtn.addEventListener('click', () => {
