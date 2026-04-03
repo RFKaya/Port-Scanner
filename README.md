@@ -40,21 +40,25 @@ cargo run -- pentest port-scan 127.0.0.1 --range 1-1000
 cargo run -- pentest port-scan google.com --range 80,443 --format json
 ```
 
-## Running the Web UI 🌐
-
-For a modern, interactive experience, you can start the built-in web server:
-
-```bash
-cargo run -- web
-```
-
-By default, the UI will be available at [http://localhost:3000](http://localhost:3000).
-
-### Web UI Features
-- **Real-time Scanning**: Trigger scans directly from your browser.
-- **Visual Analytics**: Interactive dashboard with port status breakdown.
-- **Glassmorphism Design**: High-end user interface with dark mode support.
-- **Protocols Supported**: TCP Connect, TCP SYN (requires admin), and UDP.
+## 🌐 Web Interface (Localhost)
+ 
+ For a modern, interactive experience, SecOps includes a built-in web-based dashboard with a premium glassmorphic design.
+ 
+ ### How to Start the Web UI
+ 
+ 1. Launch the server from your terminal:
+    ```bash
+    cargo run -- web
+    ```
+ 2. Open your browser and navigate to:
+    **[http://localhost:3000](http://localhost:3000)**
+ 
+ ### ✨ Web UI Features
+ - **Real-time Results**: Trigger and monitor scan progress directly from your browser.
+ - **Premium Design**: High-performance engine wrapped in a stunning dark-mode interface with glass effects.
+ - **Interactive Stats**: Instant visualization of open, closed, and filtered ports.
+ - **Protocol Support**: Full access to TCP Connect, TCP SYN (Admin required), and UDP scanning methods.
+ - **Target Resolution**: Enter hostnames (e.g., `google.com`) or IP addresses directly.
 
 ### 3. Stealthy SYN Scan (Requires Admin)
 ```powershell
