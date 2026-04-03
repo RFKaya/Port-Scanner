@@ -479,6 +479,11 @@
             box-shadow: 0 0 8px currentColor;
         }
 
+        /* Optimization: CSS-based status filtering */
+        #resultsBody.hide-Open tr[data-status="Open"] { display: none; }
+        #resultsBody.hide-Closed tr[data-status="Closed"] { display: none; }
+        #resultsBody.hide-Filtered tr[data-status="Filtered"] { display: none; }
+
         /* Tab System */
         .tabs-header {
             display: flex;
@@ -991,6 +996,9 @@
             let inserted = false;
             
             while (current) {
+                const rowPort = parseInt(current.dataset.port);
+                const rowStatus = current.dataset.status;
+
                 const statusPriority = { 'Open': 0, 'Closed': 1, 'Filtered': 2 };
                 const pPri = statusPriority[p.status] ?? 3;
                 const rowPri = statusPriority[rowStatus] ?? 3;
