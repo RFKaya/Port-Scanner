@@ -491,7 +491,9 @@
                 </form>
 
                 <div class="terminal-preview" id="terminalPreview">
-                    <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
+                    <div class="terminal-label">CLI Equivalent</div>cargo run -- <span>pentest port-scan <span
+                            id="cmdTarget">localhost</span> <span id="cmdRangeGroup"></span> <span
+                            id="cmdTimeout"></span> <span id="cmdFlag"></span></span>
                 </div>
 
                 <div class="options-bar">
@@ -636,12 +638,12 @@
 
             startLoading();
             const startTime = performance.now();
-            
+
             let currentResults = {
                 target: target,
                 ports: []
             };
-            
+
             let openCount = 0;
             resultsBody.innerHTML = '';
             resultsTarget.innerText = `Target: ${target}`;
@@ -674,18 +676,18 @@
                             try {
                                 const portRes = JSON.parse(line.slice(6));
                                 currentResults.ports.push(portRes);
-                                
+
                                 // Update Stats
                                 if (portRes.status === 'Open') openCount++;
                                 document.getElementById('statTotal').innerText = currentResults.ports.length;
                                 document.getElementById('statOpen').innerText = openCount;
-                                
+
                                 // Update Progress Bar (Real Progress)
                                 const prog = (currentResults.ports.length / totalPorts) * 100;
                                 scanProgress.style.width = Math.min(prog, 99) + '%';
 
                                 appendResultSorted(portRes);
-                            } catch (e) {}
+                            } catch (e) { }
                         }
                     }
                 }
@@ -719,7 +721,7 @@
                         count += 1;
                     }
                 });
-            } catch(e) { return 1024; }
+            } catch (e) { return 1024; }
             return count || 1;
         }
 
@@ -727,9 +729,9 @@
         function appendResultSorted(p) {
             const showOnlyOpen = onlyOpenToggle.checked;
             const searchVal = searchInput.value.toLowerCase();
-            
+
             if (showOnlyOpen && p.status !== 'Open') return;
-            
+
             const serviceName = getService(p.port);
             if (searchVal) {
                 const rowText = `${p.port} ${p.protocol} ${serviceName} ${p.status}`.toLowerCase();
@@ -747,7 +749,7 @@
             `;
 
             const rows = Array.from(resultsBody.querySelectorAll('tr'));
-            
+
             let inserted = false;
             // We want Open ports at top, Closed/Filtered below.
             // Within each group, sort by port number.
@@ -769,7 +771,7 @@
                         inserted = true;
                         break;
                     }
-                } 
+                }
                 // Case 2: p is not Open
                 else {
                     if (rowStatus !== 'Open' && p.port < rowPort) {
