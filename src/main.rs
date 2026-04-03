@@ -13,7 +13,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.4.5", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.4.6", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

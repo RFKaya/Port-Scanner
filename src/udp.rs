@@ -69,3 +69,29 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::Ipv4Addr;
+
+    #[tokio::test]
+    async fn test_scan_port_udp_listener() {
+        // Start a UDP listener on a random port
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let addr = socket.local_addr().unwrap();
+        
+        // Scan the port
+        let result = scan_port(addr.ip(), addr.port(), Duration::from_millis(100)).await;
+        // In many UDP implementations, a simple send/recv might still result in Filtered 
+        // if no response is received, but let's see what the current logic does.
+        assert!(matches!(result.status, PortStatus::Open | PortStatus::Filtered));
+    }
+
+    #[tokio::test]
+    async fn test_scan_port_udp_closed() {
+        // Scan a port that is unlikely to have anything
+        let result = scan_port(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 54322, Duration::from_millis(50)).await;
+        assert!(matches!(result.status, PortStatus::Closed | PortStatus::Filtered));
+    }
+}

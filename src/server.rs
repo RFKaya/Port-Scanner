@@ -181,3 +181,27 @@ async fn delete_history_handler(Path(filename): Path<String>) -> StatusCode {
         StatusCode::NOT_FOUND
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::Json;
+
+    #[tokio::test]
+    async fn test_scan_request_deserialization() {
+        let json = r#"{"target":"localhost","range":"1-100","scan_type":"tcp"}"#;
+        let req: ScanRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.target, "localhost");
+        assert_eq!(req.range, "1-100");
+        assert_eq!(req.scan_type, "tcp");
+        assert_eq!(req.timeout, 1000); // default
+    }
+
+    #[tokio::test]
+    async fn test_index_handler() {
+        let response = index_handler().await;
+        // Html wrapper should contain the start of the index.html
+        assert!(response.0.contains("<!DOCTYPE html>"));
+        assert!(response.0.contains("SecOps Scanner"));
+    }
+}
