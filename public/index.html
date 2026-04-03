@@ -244,7 +244,7 @@
             padding: 12px 20px;
             color: var(--text-dim);
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             text-transform: uppercase;
         }
 
@@ -419,6 +419,7 @@
                         <tr>
                             <th>Port</th>
                             <th>Protocol</th>
+                            <th>Known Service</th>
                             <th>Service Status</th>
                         </tr>
                     </thead>
@@ -446,6 +447,19 @@
         const cmdRangeGroup = document.getElementById('cmdRangeGroup');
         const cmdFlag = document.getElementById('cmdFlag');
         const cmdTimeout = document.getElementById('cmdTimeout');
+
+        const PORT_SERVICES = {
+            20: "FTP-Data", 21: "FTP", 22: "SSH/SFTP", 23: "Telnet", 25: "SMTP",
+            53: "DNS", 80: "HTTP (Web)", 110: "POP3", 143: "IMAP", 443: "HTTPS (Secure Web)",
+            445: "SMB/Microsoft-DS", 993: "IMAPS", 995: "POP3S", 1080: "SOCKS Proxy",
+            1433: "MSSQL", 1521: "Oracle DB", 2049: "NFS", 3000: "Dev Server (React/Vue)",
+            3306: "MySQL/MariaDB", 3389: "RDP (Remote Desktop)", 5000: "Flask/Docker",
+            5432: "PostgreSQL", 5900: "VNC", 6379: "Redis", 8000: "Dev/HTTP Alt",
+            8080: "HTTP Proxy/Alternative", 8443: "HTTPS Alternative", 9000: "PHP-FPM/SonarQube",
+            9092: "Kafka", 27017: "MongoDB", 27018: "MongoDB Shard", 50000: "SAP/IBM DB2"
+        };
+
+        const getService = (port) => PORT_SERVICES[port] || "-";
 
         let lastScanData = null;
 
@@ -554,6 +568,7 @@
                 tr.innerHTML = `
                     <td>${p.port}</td>
                     <td>${p.protocol}</td>
+                    <td style="color: var(--text-dim); font-size: 0.8125rem;">${getService(p.port)}</td>
                     <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
                 `;
                 resultsBody.appendChild(tr);
