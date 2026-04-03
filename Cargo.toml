@@ -1,10 +1,10 @@
 [package]
 name = "port-scan"
-version = "1.4.6"
+version = "1.4.7"
 edition = "2021"
 authors = ["RFKaya"]
 description = "A high-performance, asynchronous TCP/UDP port scanner with a modern Web UI."
-readme = "README.txt"
+readme = "README.md"
 repository = "https://github.com/RFKaya/Port-Scanner"
 license = "MIT"
 
@@ -20,6 +20,7 @@ axum = "0.7"
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 mime_guess = "2.0"
 tokio-stream = { version = "0.1.18", features = ["sync"] }
+thiserror = "1"
 
 # --- Release Optimizasyonları ---
 [profile.release]

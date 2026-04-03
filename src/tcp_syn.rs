@@ -10,14 +10,17 @@ use crate::models::{PortResult, PortStatus};
 /// Perform a TCP SYN scan on a given port (Requires Administrator/root privileges).
 /// Because `pnet` uses blocking sockets, we wrap it in a blocking task.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
-    task::spawn_blocking(move || {
+    match task::spawn_blocking(move || {
         scan_port_blocking(target, port, timeout_dur)
-    }).await.unwrap_or_else(|_| PortResult {
-        port,
-        protocol: "TCP-SYN.ERR".to_string(),
-        status: PortStatus::Filtered,
-        vulnerability: None,
-    })
+    }).await {
+        Ok(res) => res,
+        Err(_) => PortResult {
+            port,
+            protocol: "TCP-SYN.ERR".to_string(),
+            status: PortStatus::Filtered,
+            vulnerability: None,
+        }
+    }
 }
 
 fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
@@ -52,7 +55,10 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
     };
 
     let mut packet = [0u8; 20];
-    let mut tcp_packet = MutableTcpPacket::new(&mut packet).unwrap();
+    let mut tcp_packet = match MutableTcpPacket::new(&mut packet) {
+        Some(p) => p,
+        None => return PortResult { port, protocol: "TCP-SYN.ERR".to_string(), status: PortStatus::Filtered, vulnerability: None },
+    };
 
     // Source port is effectively random for stealth scan
     let source_port = 54321 + (port % 10000);

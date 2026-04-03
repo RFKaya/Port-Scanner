@@ -5,6 +5,9 @@ mod tcp_syn;
 mod udp;
 mod server;
 mod vuln_db;
+mod error;
+
+pub use crate::error::{AppError, Result};
 
 use clap::{Parser, Subcommand, Args as ClapArgs};
 use futures::stream::{self, StreamExt};
@@ -13,7 +16,7 @@ use std::time::Duration;
 use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.4.6", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.4.7", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -89,7 +92,11 @@ async fn main() {
                     args.timeout,
                     args.concurrency
                 ).await;
-                output::print_results(&res, &args.format);
+                
+                match res {
+                    Ok(data) => output::print_results(&data, &args.format),
+                    Err(e) => eprintln!("Error: {}", e),
+                }
             },
         },
         Commands::Web { port } => server::start_server(port).await,
@@ -110,11 +117,10 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
     };
 
     // Parse target
-    let target_ip = resolve_target(&target);
-    if target_ip.is_none() {
-        return stream::empty().boxed();
-    }
-    let target_ip = target_ip.unwrap();
+    let target_ip = match resolve_target(&target) {
+        Ok(ip) => ip,
+        Err(_) => return stream::empty().boxed(),
+    };
 
     // Parse port range
     let range_to_use = if range.is_empty() { "1-1024" } else { &range };
@@ -151,7 +157,10 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
     ReceiverStream::new(rx).boxed()
 }
 
-pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency: usize) -> ScanResult {
+pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency: usize) -> Result<ScanResult> {
+    // Check target resolution first
+    let _ = resolve_target(&target)?;
+
     let mut stream = run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms, concurrency).await;
     let mut results = Vec::new();
     while let Some(res) = stream.next().await {
@@ -159,7 +168,7 @@ pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: 
     }
     // Final sort for CLI/Legacy
     results.sort_by(|a, b| a.port.cmp(&b.port));
-    ScanResult { target, ports: results }
+    Ok(ScanResult { target, ports: results })
 }
 
 // Simple port range parser. Handles "80", "1-1024", or "80,443,1-100".
@@ -196,10 +205,10 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
 }
 
 // Simple DNS lookup / IP parser
-fn resolve_target(target: &str) -> Option<IpAddr> {
+fn resolve_target(target: &str) -> crate::Result<IpAddr> {
     // If it's directly an IP
     if let Ok(ip) = target.parse::<IpAddr>() {
-        return Some(ip);
+        return Ok(ip);
     }
     
     // Otherwise, try to resolve via ToSocketAddrs
@@ -207,10 +216,10 @@ fn resolve_target(target: &str) -> Option<IpAddr> {
     let probe = format!("{}:80", target);
     if let Ok(mut addrs) = probe.to_socket_addrs() {
         if let Some(addr) = addrs.next() {
-            return Some(addr.ip());
+            return Ok(addr.ip());
         }
     }
-    None
+    Err(AppError::Resolution(target.to_string()))
 }
 
 #[cfg(test)]
@@ -244,13 +253,13 @@ mod tests {
 
     #[test]
     fn test_resolve_target_ip() {
-        assert!(resolve_target("127.0.0.1").is_some());
-        assert!(resolve_target("::1").is_some());
+        assert!(resolve_target("127.0.0.1").is_ok());
+        assert!(resolve_target("::1").is_ok());
     }
 
     #[test]
     fn test_resolve_target_localhost() {
         // This might fail in some restricted environments, but usually works
-        assert!(resolve_target("localhost").is_some());
+        assert!(resolve_target("localhost").is_ok());
     }
 }

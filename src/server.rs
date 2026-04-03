@@ -11,8 +11,8 @@ use serde::Deserialize;
 use std::net::SocketAddr;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::run_port_scan_logic;
 use crate::models::ScanResult;
+use crate::Result;
 use tower_http::cors::CorsLayer;
 
 #[derive(Deserialize)]
@@ -43,31 +43,40 @@ pub async fn start_server(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("Server starting on http://{}", addr);
     
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Failed to bind to {}: {}", addr, e);
+            return;
+        }
+    };
+    
+    if let Err(e) = axum::serve(listener, app).await {
+        eprintln!("Server error: {}", e);
+    }
 }
 
 async fn index_handler() -> Html<&'static str> {
     Html(include_str!("../public/index.html"))
 }
 
-async fn scan_handler(Json(payload): Json<ScanRequest>) -> Json<ScanResult> {
+async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResult>> {
     let syn = payload.scan_type == "syn";
     let udp = payload.scan_type == "udp";
     
     let target_name = payload.target.clone();
     
-    let result = run_port_scan_logic(
+    let result = crate::run_port_scan_logic(
         payload.target,
         payload.range,
         syn,
         udp,
         payload.timeout,
         payload.concurrency,
-    ).await;
+    ).await?;
     
     // Klasörün varlığından emin ol
-    let _ = fs::create_dir_all("scans");
+    fs::create_dir_all("scans")?;
     
     // Benzersiz bir dosya ismi oluştur (hedef_isim + timestamp)
     let timestamp = SystemTime::now()
@@ -79,14 +88,13 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Json<ScanResult> {
     let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
     
     // Taramayı JSON olarak diske kaydet
-    if let Ok(json_str) = serde_json::to_string_pretty(&result) {
-        let _ = fs::write(&filename, json_str);
-    }
+    let json_str = serde_json::to_string_pretty(&result)?;
+    fs::write(&filename, json_str)?;
     
-    Json(result)
+    Ok(Json(result))
 }
 
-async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futures::Stream<Item = Result<Event, Infallible>>> {
+async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futures::Stream<Item = std::result::Result<Event, Infallible>>> {
     let syn = payload.scan_type == "syn";
     let udp = payload.scan_type == "udp";
     
@@ -106,27 +114,27 @@ async fn scan_stream_handler(Json(payload): Json<ScanRequest>) -> Sse<impl futur
 
     // Arka planda taramayı tamamlayıp diske kaydedecek bir görev başlatalım
     tokio::spawn(async move {
-        let result = crate::run_port_scan_logic(
+        if let Ok(result) = crate::run_port_scan_logic(
             target_save,
             range_save,
             syn,
             udp,
             timeout_save,
             payload.concurrency,
-        ).await;
-
-        let _ = fs::create_dir_all("scans");
-        
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
+        ).await {
+            let _ = fs::create_dir_all("scans");
             
-        let target_safe = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
-        let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
-        
-        if let Ok(json_str) = serde_json::to_string_pretty(&result) {
-            let _ = fs::write(&filename, json_str);
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+                
+            let target_safe = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
+            let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
+            
+            if let Ok(json_str) = serde_json::to_string_pretty(&result) {
+                let _ = fs::write(&filename, json_str);
+            }
         }
     });
 
@@ -154,38 +162,31 @@ async fn list_history_handler() -> Json<Vec<String>> {
     Json(history)
 }
 
-async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanResult>, StatusCode> {
+async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanResult>> {
     // Güvenlik kontrolü
     if !filename.ends_with(".json") || filename.contains("..") || filename.contains('/') || filename.contains('\\') {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(crate::AppError::Scanner("Invalid filename".to_string()));
     }
     
     let path = format!("scans/{}", filename);
-    if let Ok(content) = fs::read_to_string(path) {
-        if let Ok(result) = serde_json::from_str::<ScanResult>(&content) {
-            return Ok(Json(result));
-        }
-    }
-    Err(StatusCode::NOT_FOUND)
+    let content = fs::read_to_string(path)?;
+    let result = serde_json::from_str::<ScanResult>(&content)?;
+    Ok(Json(result))
 }
 
-async fn delete_history_handler(Path(filename): Path<String>) -> StatusCode {
+async fn delete_history_handler(Path(filename): Path<String>) -> Result<StatusCode> {
     if !filename.ends_with(".json") || filename.contains("..") || filename.contains('/') || filename.contains('\\') {
-        return StatusCode::BAD_REQUEST;
+        return Err(crate::AppError::Scanner("Invalid filename".to_string()));
     }
     
     let path = format!("scans/{}", filename);
-    if fs::remove_file(path).is_ok() {
-        StatusCode::OK
-    } else {
-        StatusCode::NOT_FOUND
-    }
+    fs::remove_file(path)?;
+    Ok(StatusCode::OK)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::Json;
 
     #[tokio::test]
     async fn test_scan_request_deserialization() {
