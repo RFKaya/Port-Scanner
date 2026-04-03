@@ -1,8 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 use std::time::Duration;
 use pnet::packet::ip::IpNextHeaderProtocols;
-use pnet::packet::tcp::{MutableTcpPacket, TcpFlags, TcpPacket};
-use pnet::packet::Packet;
+use pnet::packet::tcp::{MutableTcpPacket, TcpFlags};
 use pnet::transport::{tcp_packet_iter, transport_channel, TransportChannelType, TransportProtocol};
 use tokio::task;
 
@@ -84,9 +83,10 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
             return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered };
         }
 
-        // We use next_with_timeout to avoid blocking forever
-        match rx_iter.next_with_timeout(timeout_dur - start.elapsed()) {
-            Ok(Some((resp_packet, _addr))) => {
+        // We use standard next(). In a blocking queue, this may block until a packet arrives,
+        // so timeout might not be instantaneous if the network is completely silent.
+        match rx_iter.next() {
+            Ok((resp_packet, _addr)) => {
                 // Check if this response is for our probe
                 if resp_packet.get_destination() == source_port && resp_packet.get_source() == port {
                     let flags = resp_packet.get_flags();
@@ -97,7 +97,7 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
                     }
                 }
             },
-            _ => continue,
+            Err(_) => return PortResult { port, protocol: "TCP-SYN".to_string(), status: PortStatus::Filtered },
         }
     }
 }

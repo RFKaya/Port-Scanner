@@ -44,7 +44,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    let mut args = Args::parse();
+    let args = Args::parse();
     
     // Determine scan type based on flags
     let scan_type = if args.syn {
