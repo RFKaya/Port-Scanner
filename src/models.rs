@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum PortStatus {
@@ -73,14 +73,12 @@ mod tests {
     fn test_scan_result_serialization() {
         let result = ScanResult {
             target: "127.0.0.1".to_string(),
-            ports: vec![
-                PortResult {
-                    port: 80,
-                    protocol: "TCP".to_string(),
-                    status: PortStatus::Open,
-                    vulnerability: None,
-                }
-            ],
+            ports: vec![PortResult {
+                port: 80,
+                protocol: "TCP".to_string(),
+                status: PortStatus::Open,
+                vulnerability: None,
+            }],
         };
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"port\":80"));

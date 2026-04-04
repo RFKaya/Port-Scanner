@@ -1,9 +1,9 @@
-use thiserror::Error;
 use axum::{
-    response::{IntoResponse, Response},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -34,9 +34,15 @@ impl IntoResponse for AppError {
         let (status, error_message) = match self {
             AppError::Io(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
             AppError::Json(e) => (StatusCode::BAD_REQUEST, e.to_string()),
-            AppError::Resolution(target) => (StatusCode::BAD_REQUEST, format!("Could not resolve target '{}'", target)),
+            AppError::Resolution(target) => (
+                StatusCode::BAD_REQUEST,
+                format!("Could not resolve target '{}'", target),
+            ),
             AppError::Scanner(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-            AppError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string()),
+            AppError::Internal => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            ),
         };
 
         let body = axum::Json(ErrorResponse {

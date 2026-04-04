@@ -1,22 +1,22 @@
+mod error;
 mod models;
 mod output;
+mod server;
 mod tcp_connect;
 mod tcp_syn;
 mod udp;
-mod server;
 mod vuln_db;
-mod error;
 
 pub use crate::error::{AppError, Result};
 
-use clap::{Parser, Subcommand, Args as ClapArgs};
+use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
+use clap::{Args as ClapArgs, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
-use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.4.7", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.5.0", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -80,30 +80,38 @@ struct ScanArgs {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    
+
     match cli.command {
         Commands::Pentest { tool } => match tool {
             PentestCommands::PortScan(args) => {
                 let res = run_port_scan_logic(
-                    args.target.clone(), 
-                    args.range.clone(), 
-                    args.syn, 
-                    args.udp, 
+                    args.target.clone(),
+                    args.range.clone(),
+                    args.syn,
+                    args.udp,
                     args.timeout,
-                    args.concurrency
-                ).await;
-                
+                    args.concurrency,
+                )
+                .await;
+
                 match res {
                     Ok(data) => output::print_results(&data, &args.format),
                     Err(e) => eprintln!("Error: {}", e),
                 }
-            },
+            }
         },
         Commands::Web { port } => server::start_server(port).await,
     }
 }
 
-pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency_limit: usize) -> futures::stream::BoxStream<'static, PortResult> {
+pub async fn run_port_scan_logic_stream(
+    target: String,
+    range: String,
+    syn: bool,
+    udp: bool,
+    timeout_ms: u64,
+    concurrency_limit: usize,
+) -> futures::stream::BoxStream<'static, PortResult> {
     use tokio::sync::mpsc;
     use tokio_stream::wrappers::ReceiverStream;
 
@@ -132,43 +140,58 @@ pub async fn run_port_scan_logic_stream(target: String, range: String, syn: bool
     let (tx, rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
-        let scan_stream = stream::iter(ports).map(|port| {
-            let st = scan_type.clone();
-            let tx_inner = tx.clone();
-            async move {
-                let mut res = match st {
-                    ScanType::Connect => tcp_connect::scan_port(target_ip, port, timeout_dur).await,
-                    ScanType::Syn => tcp_syn::scan_port(target_ip, port, timeout_dur).await,
-                    ScanType::Udp => udp::scan_port(target_ip, port, timeout_dur).await,
-                };
+        let scan_stream = stream::iter(ports)
+            .map(|port| {
+                let st = scan_type.clone();
+                let tx_inner = tx.clone();
+                async move {
+                    let mut res = match st {
+                        ScanType::Connect => {
+                            tcp_connect::scan_port(target_ip, port, timeout_dur).await
+                        }
+                        ScanType::Syn => tcp_syn::scan_port(target_ip, port, timeout_dur).await,
+                        ScanType::Udp => udp::scan_port(target_ip, port, timeout_dur).await,
+                    };
 
-                // If port is open, check for known vulnerabilities
-                if matches!(res.status, crate::models::PortStatus::Open) {
-                    res.vulnerability = vuln_db::get_vuln_for_port(port);
+                    // If port is open, check for known vulnerabilities
+                    if matches!(res.status, crate::models::PortStatus::Open) {
+                        res.vulnerability = vuln_db::get_vuln_for_port(port);
+                    }
+
+                    let _ = tx_inner.send(res).await;
                 }
+            })
+            .buffer_unordered(concurrency_limit);
 
-                let _ = tx_inner.send(res).await;
-            }
-        }).buffer_unordered(concurrency_limit);
-        
         scan_stream.collect::<()>().await;
     });
 
     ReceiverStream::new(rx).boxed()
 }
 
-pub async fn run_port_scan_logic(target: String, range: String, syn: bool, udp: bool, timeout_ms: u64, concurrency: usize) -> Result<ScanResult> {
+pub async fn run_port_scan_logic(
+    target: String,
+    range: String,
+    syn: bool,
+    udp: bool,
+    timeout_ms: u64,
+    concurrency: usize,
+) -> Result<ScanResult> {
     // Check target resolution first
     let _ = resolve_target(&target)?;
 
-    let mut stream = run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms, concurrency).await;
+    let mut stream =
+        run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms, concurrency).await;
     let mut results = Vec::new();
     while let Some(res) = stream.next().await {
         results.push(res);
     }
     // Final sort for CLI/Legacy
     results.sort_by(|a, b| a.port.cmp(&b.port));
-    Ok(ScanResult { target, ports: results })
+    Ok(ScanResult {
+        target,
+        ports: results,
+    })
 }
 
 // Simple port range parser. Handles "80", "1-1024", or "80,443,1-100".
@@ -176,22 +199,25 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
     let mut ports = Vec::new();
     for part in range_str.split(',') {
         let part_str = part.trim();
-        if part_str.is_empty() { continue; }
-        
+        if part_str.is_empty() {
+            continue;
+        }
+
         let sub_parts: Vec<&str> = part_str.split('-').collect();
         if sub_parts.len() == 2 {
-            if let (Ok(start), Ok(end)) = (sub_parts[0].parse::<u32>(), sub_parts[1].parse::<u32>()) {
+            if let (Ok(start), Ok(end)) = (sub_parts[0].parse::<u32>(), sub_parts[1].parse::<u32>())
+            {
                 // Clamp to valid port ranges
-                let start_clamped = start.max(1).min(65535) as u16;
-                let end_clamped = end.max(1).min(65535) as u16;
-                
+                let start_clamped = start.clamp(1, 65535) as u16;
+                let end_clamped = end.clamp(1, 65535) as u16;
+
                 for p in start_clamped..=end_clamped {
                     ports.push(p);
                 }
             }
         } else if sub_parts.len() == 1 {
             if let Ok(p) = sub_parts[0].parse::<u32>() {
-                if p >= 1 && p <= 65535 {
+                if (1..=65535).contains(&p) {
                     ports.push(p as u16);
                 }
             }
@@ -200,7 +226,7 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
     // Remove duplicates
     ports.sort_unstable();
     ports.dedup();
-    
+
     ports
 }
 
@@ -210,7 +236,7 @@ fn resolve_target(target: &str) -> crate::Result<IpAddr> {
     if let Ok(ip) = target.parse::<IpAddr>() {
         return Ok(ip);
     }
-    
+
     // Otherwise, try to resolve via ToSocketAddrs
     // We append a dummy port just for resolution
     let probe = format!("{}:80", target);
@@ -243,7 +269,10 @@ mod tests {
 
     #[test]
     fn test_parse_ports_overlap_and_unsorted() {
-        assert_eq!(parse_ports("80,70-85,22"), vec![22, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]);
+        assert_eq!(
+            parse_ports("80,70-85,22"),
+            vec![22, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]
+        );
     }
 
     #[test]

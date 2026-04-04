@@ -8,7 +8,7 @@ use crate::models::{PortResult, PortStatus};
 /// Perform a full TCP connect scan on a given port.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
     let socket_addr = std::net::SocketAddr::new(target, port);
-    
+
     // Attempt to connect with a timeout
     match timeout(timeout_dur, TcpStream::connect(&socket_addr)).await {
         Ok(Ok(_stream)) => PortResult {
@@ -52,9 +52,17 @@ mod tests {
     #[tokio::test]
     async fn test_scan_port_closed() {
         // Use a port that is unlikely to be open
-        let result = scan_port(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 54321, Duration::from_millis(100)).await;
+        let result = scan_port(
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            54321,
+            Duration::from_millis(100),
+        )
+        .await;
         // Depending on the OS, this might be Closed or Filtered (if there's a firewall)
         // On localhost, it's almost always Closed.
-        assert!(matches!(result.status, PortStatus::Closed | PortStatus::Filtered));
+        assert!(matches!(
+            result.status,
+            PortStatus::Closed | PortStatus::Filtered
+        ));
     }
 }
