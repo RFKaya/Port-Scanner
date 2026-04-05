@@ -92,8 +92,8 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResul
         .unwrap_or_default()
         .as_secs();
 
-    let target_safe = target_name.replace(|c: char| !c.is_alphanumeric(), "_");
-    let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
+    let target_sanitized = target_name.replace(|c: char| !c.is_alphanumeric(), "_");
+    let filename = format!("scans/scan_{target_sanitized}_{timestamp}.json");
 
     // Taramayı JSON olarak diske kaydet
     let json_str = serde_json::to_string_pretty(&result)?;
@@ -142,8 +142,8 @@ async fn scan_stream_handler(
                 .unwrap_or_default()
                 .as_secs();
 
-            let target_safe = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
-            let filename = format!("scans/scan_{}_{}.json", target_safe, timestamp);
+            let target_sanitized = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
+            let filename = format!("scans/scan_{target_sanitized}_{timestamp}.json");
 
             if let Ok(json_str) = serde_json::to_string_pretty(&result) {
                 let _ = fs::write(&filename, json_str);
@@ -164,7 +164,10 @@ async fn list_history_handler() -> Json<Vec<String>> {
     if let Ok(entries) = fs::read_dir("scans") {
         for entry in entries.flatten() {
             if let Ok(name) = entry.file_name().into_string() {
-                if name.ends_with(".json") {
+                if std::path::Path::new(&name)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
+                {
                     history.push(name);
                 }
             }
@@ -177,7 +180,9 @@ async fn list_history_handler() -> Json<Vec<String>> {
 
 async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanResult>> {
     // Güvenlik kontrolü
-    if !filename.ends_with(".json")
+    if !std::path::Path::new(&filename)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
         || filename.contains("..")
         || filename.contains('/')
         || filename.contains('\\')
@@ -185,14 +190,16 @@ async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanRe
         return Err(crate::AppError::Scanner("Invalid filename".to_string()));
     }
 
-    let path = format!("scans/{}", filename);
+    let path = format!("scans/{filename}");
     let content = fs::read_to_string(path)?;
     let result = serde_json::from_str::<ScanResult>(&content)?;
     Ok(Json(result))
 }
 
 async fn delete_history_handler(Path(filename): Path<String>) -> Result<StatusCode> {
-    if !filename.ends_with(".json")
+    if !std::path::Path::new(&filename)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
         || filename.contains("..")
         || filename.contains('/')
         || filename.contains('\\')
@@ -200,7 +207,7 @@ async fn delete_history_handler(Path(filename): Path<String>) -> Result<StatusCo
         return Err(crate::AppError::Scanner("Invalid filename".to_string()));
     }
 
-    let path = format!("scans/{}", filename);
+    let path = format!("scans/{filename}");
     fs::remove_file(path)?;
     Ok(StatusCode::OK)
 }

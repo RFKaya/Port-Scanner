@@ -96,7 +96,7 @@ async fn main() {
 
                 match res {
                     Ok(data) => output::print_results(&data, &args.format),
-                    Err(e) => eprintln!("Error: {}", e),
+                    Err(e) => eprintln!("Error: {e}"),
                 }
             }
         },
@@ -104,6 +104,7 @@ async fn main() {
     }
 }
 
+#[allow(clippy::unused_async)]
 pub async fn run_port_scan_logic_stream(
     target: String,
     range: String,
@@ -125,9 +126,8 @@ pub async fn run_port_scan_logic_stream(
     };
 
     // Parse target
-    let target_ip = match resolve_target(&target) {
-        Ok(ip) => ip,
-        Err(_) => return stream::empty().boxed(),
+    let Ok(target_ip) = resolve_target(&target) else {
+        return stream::empty().boxed();
     };
 
     // Parse port range
@@ -169,6 +169,11 @@ pub async fn run_port_scan_logic_stream(
     ReceiverStream::new(rx).boxed()
 }
 
+/// Scans the target for open ports based on the provided range and parameters.
+///
+/// # Errors
+///
+/// Returns an error if the target hostname cannot be resolved to an IP address.
 pub async fn run_port_scan_logic(
     target: String,
     range: String,
@@ -218,7 +223,9 @@ fn parse_ports(range_str: &str) -> Vec<u16> {
         } else if sub_parts.len() == 1 {
             if let Ok(p) = sub_parts[0].parse::<u32>() {
                 if (1..=65535).contains(&p) {
-                    ports.push(p as u16);
+                    if let Ok(p_u16) = u16::try_from(p) {
+                        ports.push(p_u16);
+                    }
                 }
             }
         }
@@ -239,7 +246,7 @@ fn resolve_target(target: &str) -> crate::Result<IpAddr> {
 
     // Otherwise, try to resolve via ToSocketAddrs
     // We append a dummy port just for resolution
-    let probe = format!("{}:80", target);
+    let probe = format!("{target}:80");
     if let Ok(mut addrs) = probe.to_socket_addrs() {
         if let Some(addr) = addrs.next() {
             return Ok(addr.ip());

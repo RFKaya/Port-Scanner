@@ -14,16 +14,13 @@ pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> Port
         "[::]:0"
     };
 
-    let socket = match UdpSocket::bind(local_addr).await {
-        Ok(s) => s,
-        Err(_) => {
-            return PortResult {
-                port,
-                protocol: "UDP".to_string(),
-                status: PortStatus::Filtered, // Assume something blocked local bind
-                vulnerability: None,
-            };
-        }
+    let Ok(socket) = UdpSocket::bind(local_addr).await else {
+        return PortResult {
+            port,
+            protocol: "UDP".to_string(),
+            status: PortStatus::Filtered, // Assume something blocked local bind
+            vulnerability: None,
+        };
     };
 
     let target_addr = std::net::SocketAddr::new(target, port);

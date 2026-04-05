@@ -1,4 +1,5 @@
 use crate::models::{OutputFormat, PortStatus, ScanResult};
+use std::fmt::Write;
 
 pub fn print_results(result: &ScanResult, format: &OutputFormat) {
     match format {
@@ -17,7 +18,7 @@ pub fn print_results(result: &ScanResult, format: &OutputFormat) {
 
 pub fn render_markdown(result: &ScanResult) -> String {
     let mut out = String::new();
-    out.push_str(&format!("# Scan Results for Target: {}\n\n", result.target));
+    let _ = writeln!(out, "# Scan Results for Target: {}\n", result.target);
 
     // Count open/closed/filtered
     let total = result.ports.len();
@@ -38,20 +39,17 @@ pub fn render_markdown(result: &ScanResult) -> String {
         .count();
 
     out.push_str("## Summary\n");
-    out.push_str(&format!("- **Total Ports Scanned:** {}\n", total));
-    out.push_str(&format!("- **Open:** {}\n", open));
-    out.push_str(&format!("- **Closed:** {}\n", closed));
-    out.push_str(&format!("- **Filtered:** {}\n\n", filtered));
+    let _ = writeln!(out, "- **Total Ports Scanned:** {total}");
+    let _ = writeln!(out, "- **Open:** {open}");
+    let _ = writeln!(out, "- **Closed:** {closed}");
+    let _ = writeln!(out, "- **Filtered:** {filtered}\n");
 
     out.push_str("## Detailed Findings\n");
     out.push_str("| Port | Protocol | Status |\n");
     out.push_str("|------|----------|--------|\n");
     for p in &result.ports {
         if matches!(p.status, PortStatus::Open) {
-            out.push_str(&format!(
-                "| {} | {} | **{:?}** |\n",
-                p.port, p.protocol, p.status
-            ));
+            let _ = writeln!(out, "| {} | {} | **{:?}** |", p.port, p.protocol, p.status);
         }
     }
 

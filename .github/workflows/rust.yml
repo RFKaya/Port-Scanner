@@ -1,0 +1,39 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (libpcap)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+
+    - name: Rust Toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Check Formatting
+      run: cargo fmt --check
+
+    - name: Clippy (Strict)
+      run: cargo clippy -- -D warnings -W clippy::pedantic
+
+    - name: Run Tests
+      run: cargo test --verbose
+
+    - name: Build
+      run: cargo build --verbose

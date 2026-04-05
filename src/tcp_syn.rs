@@ -42,30 +42,24 @@ fn scan_port_blocking(target: IpAddr, port: u16, timeout_dur: Duration) -> PortR
         TransportChannelType::Layer4(TransportProtocol::Ipv4(IpNextHeaderProtocols::Tcp));
 
     // Create a transport channel (requires privileges)
-    let (mut tx, mut rx) = match transport_channel(4096, protocol) {
-        Ok((tx, rx)) => (tx, rx),
-        Err(_) => {
-            // Permission denied or Npcap missing
-            return PortResult {
-                port,
-                protocol: "TCP-SYN".to_string(),
-                status: PortStatus::Filtered, // Or Permission Denied state
-                vulnerability: None,
-            };
-        }
+    let Ok((mut tx, mut rx)) = transport_channel(4096, protocol) else {
+        // Permission denied or Npcap missing
+        return PortResult {
+            port,
+            protocol: "TCP-SYN".to_string(),
+            status: PortStatus::Filtered, // Or Permission Denied state
+            vulnerability: None,
+        };
     };
 
     let mut packet = [0u8; 20];
-    let mut tcp_packet = match MutableTcpPacket::new(&mut packet) {
-        Some(p) => p,
-        None => {
-            return PortResult {
-                port,
-                protocol: "TCP-SYN.ERR".to_string(),
-                status: PortStatus::Filtered,
-                vulnerability: None,
-            }
-        }
+    let Some(mut tcp_packet) = MutableTcpPacket::new(&mut packet) else {
+        return PortResult {
+            port,
+            protocol: "TCP-SYN.ERR".to_string(),
+            status: PortStatus::Filtered,
+            vulnerability: None,
+        };
     };
 
     // Source port is effectively random for stealth scan
