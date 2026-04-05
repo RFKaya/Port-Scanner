@@ -11,7 +11,7 @@
 
   # 🛡️ SECOPS PORT SCANNER
 
-  **Yüksek performanslı, asenkron ve modern bir ağ güvenlik tarayıcısı.**
+  **Hedef sistemlerdeki açık portları saniyelik hızlarla tespit eden; TCP/UDP desteği, dahili zafiyet veritabanı ve asenkron mimarisiyle hem Web hem de CLI üzerinden çalışan modern bir ağ güvenlik aracıdır.**
 </div>
 
 ---
