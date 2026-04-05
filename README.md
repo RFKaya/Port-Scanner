@@ -18,10 +18,8 @@
 
 ## 🛠️ Kurulum ve Hazırlık
 
-Projenin tak-çalıştır (Plug & Play) mantığında olması için gerekli tüm bağımlılıklar ayarlanmıştır:
-
 - **Rust**: [rustup.rs](https://rustup.rs) adresinden yüklü olmalıdır.
-- **Windows Kullanıyorsanız:** TCP SYN taraması için gerekli olan `Packet.lib` dosyası proje kök dizinine dahil edilmiştir. `build.rs` sayesinde ek bir ortam değişkeni ayarlamanıza gerek kalmadan `cargo build` komutuyla derleyebilirsiniz. (Not: Taramaların çalışması için sistemde Npcap/WinPcap sürücüsünün yüklü olması yeterlidir.)
+- **Windows:** Taramalar için sistemde [Npcap](https://npcap.com/) veya **WinPcap** yüklü olmalıdır.
 - **Linux Kullanıyorsanız:** Paket yakalama işlemleri (SYN scan) için **yönetici izinleri (`sudo`)** gereklidir.
 
 ### Derleme
