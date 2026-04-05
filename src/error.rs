@@ -36,7 +36,7 @@ impl IntoResponse for AppError {
             AppError::Json(e) => (StatusCode::BAD_REQUEST, e.to_string()),
             AppError::Resolution(target) => (
                 StatusCode::BAD_REQUEST,
-                format!("Could not resolve target '{}'", target),
+                format!("Could not resolve target '{target}'"),
             ),
             AppError::Scanner(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::Internal => (

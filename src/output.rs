@@ -5,7 +5,7 @@ pub fn print_results(result: &ScanResult, format: &OutputFormat) {
     match format {
         OutputFormat::Json => {
             if let Ok(json) = serde_json::to_string_pretty(&result) {
-                println!("{}", json);
+                println!("{json}");
             } else {
                 eprintln!("Failed to serialize results to JSON.");
             }

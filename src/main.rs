@@ -16,7 +16,7 @@ use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.5.0", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.5.1", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
