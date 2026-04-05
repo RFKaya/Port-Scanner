@@ -1,6 +1,18 @@
-# SECOPS PORT SCANNER
+<div align="center">
+  <img src="https://img.shields.io/badge/VERSION-1.5.1-blue?style=for-the-badge&logo=github" />
+  <img src="https://img.shields.io/badge/RUST-1.75%2B-orange?style=for-the-badge&logo=rust" />
+  <img src="https://img.shields.io/badge/LICENSE-MIT-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/PLATFORM-WINDOWS%20%7C%20LINUX-lightgrey?style=for-the-badge" />
+  <br>
+  <img src="https://img.shields.io/badge/MAINTENANCE-ACTIVE-brightgreen?style=flat-square" />
+  <img src="https://img.shields.io/badge/PRs-WELCOME-blueviolet?style=flat-square" />
+  <img src="https://img.shields.io/badge/SECURE-WAF_EVASION-red?style=flat-square" />
+  <img src="https://img.shields.io/badge/INTERFACE-WEB_%7C_CLI-blue?style=flat-square" />
 
-Yüksek performanslı, asenkron ve modern bir ağ güvenlik tarayıcısı.
+  # 🛡️ SECOPS PORT SCANNER
+
+  **Yüksek performanslı, asenkron ve modern bir ağ güvenlik tarayıcısı.**
+</div>
 
 ---
 
