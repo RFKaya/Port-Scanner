@@ -98,7 +98,7 @@ async fn main() {
                     Ok(data) => {
                         // Print results to screen
                         output::print_results(&data, &args.format);
-                        
+
                         // Save results to disk
                         match data.save_to_file() {
                             Ok(path) => println!("\n[+] Scan results saved to: {path}"),
