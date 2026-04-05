@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum PortStatus {
@@ -35,6 +37,30 @@ pub struct PortResult {
 pub struct ScanResult {
     pub target: String,
     pub ports: Vec<PortResult>,
+}
+
+impl ScanResult {
+    /// Saves the scan results to the 'scans/' directory in JSON format.
+    pub fn save_to_file(&self) -> crate::Result<String> {
+        // Ensure the directory exists
+        fs::create_dir_all("scans")?;
+
+        // Create a unique filename (target_name + timestamp)
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| crate::AppError::Scanner(format!("Time error: {e}")))?
+            .as_secs();
+
+        // Sanitize target name for filename (replace non-alphanumeric with _)
+        let target_sanitized = self.target.replace(|c: char| !c.is_alphanumeric(), "_");
+        let filename = format!("scans/scan_{target_sanitized}_{timestamp}.json");
+
+        // Save the scan as pretty-printed JSON to disk
+        let json_str = serde_json::to_string_pretty(self)?;
+        fs::write(&filename, json_str)?;
+
+        Ok(filename)
+    }
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]

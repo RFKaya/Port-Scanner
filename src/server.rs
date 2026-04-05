@@ -15,7 +15,6 @@ use serde::Deserialize;
 use std::convert::Infallible;
 use std::fs;
 use std::net::SocketAddr;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tower_http::cors::CorsLayer;
 
 #[derive(Deserialize)]
@@ -71,8 +70,6 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResul
     let syn = payload.scan_type == "syn";
     let udp = payload.scan_type == "udp";
 
-    let target_name = payload.target.clone();
-
     let result = crate::run_port_scan_logic(
         payload.target,
         payload.range,
@@ -83,21 +80,8 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResul
     )
     .await?;
 
-    // Klasörün varlığından emin ol
-    fs::create_dir_all("scans")?;
-
-    // Benzersiz bir dosya ismi oluştur (hedef_isim + timestamp)
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-
-    let target_sanitized = target_name.replace(|c: char| !c.is_alphanumeric(), "_");
-    let filename = format!("scans/scan_{target_sanitized}_{timestamp}.json");
-
     // Taramayı JSON olarak diske kaydet
-    let json_str = serde_json::to_string_pretty(&result)?;
-    fs::write(&filename, json_str)?;
+    result.save_to_file()?;
 
     Ok(Json(result))
 }
@@ -108,7 +92,7 @@ async fn scan_stream_handler(
     let syn = payload.scan_type == "syn";
     let udp = payload.scan_type == "udp";
 
-    // Tarama parametrelerini yedekleyelim (arka plan kaydı için)
+    // Backup scan parameters (for background saving)
     let target_save = payload.target.clone();
     let range_save = payload.range.clone();
     let timeout_save = payload.timeout;
@@ -123,7 +107,7 @@ async fn scan_stream_handler(
     )
     .await;
 
-    // Arka planda taramayı tamamlayıp diske kaydedecek bir görev başlatalım
+    // Start a background task to complete the scan and save it to disk
     tokio::spawn(async move {
         if let Ok(result) = crate::run_port_scan_logic(
             target_save,
@@ -135,19 +119,7 @@ async fn scan_stream_handler(
         )
         .await
         {
-            let _ = fs::create_dir_all("scans");
-
-            let timestamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-
-            let target_sanitized = result.target.replace(|c: char| !c.is_alphanumeric(), "_");
-            let filename = format!("scans/scan_{target_sanitized}_{timestamp}.json");
-
-            if let Ok(json_str) = serde_json::to_string_pretty(&result) {
-                let _ = fs::write(&filename, json_str);
-            }
+            let _ = result.save_to_file();
         }
     });
 
@@ -173,13 +145,13 @@ async fn list_history_handler() -> Json<Vec<String>> {
             }
         }
     }
-    // Dosya ismindeki timestamp'e göre azalan sırada (en yeni en üstte)
+    // Sort by timestamp in filename in descending order (newest first)
     history.sort_by(|a, b| b.cmp(a));
     Json(history)
 }
 
 async fn get_history_handler(Path(filename): Path<String>) -> Result<Json<ScanResult>> {
-    // Güvenlik kontrolü
+    // Security check to prevent path traversal
     if !std::path::Path::new(&filename)
         .extension()
         .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))

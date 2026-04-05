@@ -49,7 +49,7 @@ struct ScanArgs {
     target: String,
 
     /// Port range (e.g., 1-1024)
-    #[arg(long, default_value = "1-1024")]
+    #[arg(short = 'r', long, default_value = "1-1024")]
     range: String,
 
     /// Output format
@@ -95,7 +95,16 @@ async fn main() {
                 .await;
 
                 match res {
-                    Ok(data) => output::print_results(&data, &args.format),
+                    Ok(data) => {
+                        // Print results to screen
+                        output::print_results(&data, &args.format);
+                        
+                        // Save results to disk
+                        match data.save_to_file() {
+                            Ok(path) => println!("\n[+] Scan results saved to: {path}"),
+                            Err(e) => eprintln!("\n[!] Save error: {e}"),
+                        }
+                    }
                     Err(e) => eprintln!("Error: {e}"),
                 }
             }

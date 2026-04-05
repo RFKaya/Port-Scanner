@@ -41,13 +41,15 @@ cargo run -- web
 ### Öne Çıkan Özellikler:
 - 📊 **Canlı Port Durum Grafikleri** (Chart.js)
 - 🛡️ **Zafiyet Eşleştirme** (Vulnerability Mapping)
-- 📝 **Kaydedilen Tarama Geçmişi** (History)
-- 📥 **CSV Formatında Dışa Aktarma**
+- 📝 **Tarama Geçmişi** (CLI taramaları dahil tüm geçmişi saklar)
+- 📥 **CSV/JSON Formatında Dışa Aktarma**
 - 🔍 **Anlık Arama ve Duruma Göre Filtreleme**
 
 ---
 
 ## 💻 Komut Satırı Kullanımı (CLI)
+> [!TIP]
+> CLI üzerinden yapılan tüm taramalar otomatik olarak `scans/` dizinine `.json` olarak kaydedilir. Bu taramaları daha sonra **Web Arayüzü > History** sekmesinden görsel olarak analiz edebilirsiniz.
 
 ### Standart Tarama (TCP Connect)
 ```bash
