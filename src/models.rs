@@ -34,7 +34,6 @@ pub struct PortResult {
     pub vulnerability: Option<VulnerabilityInfo>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResult {
     pub target: String,
