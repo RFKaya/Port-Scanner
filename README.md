@@ -30,7 +30,7 @@ Bu araç, sadece portların açık olup olmadığını kontrol etmekle kalmaz, a
 
 - **Üniversite:** İstinye Üniversitesi
 - **Geliştirici:** Rauf Fatih Kaya
-- **Danışman:** Keyvan Arasteh
+- **Danışman:** Keyvan Arasteh Abbasabad
 - **Ders:** Siber Güvenlik Temelleri / Ağ Programlama (Vize Projesi)
 
 ---
