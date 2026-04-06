@@ -6,9 +6,9 @@ mod server;
 
 pub use crate::error::{AppError, Result};
 
+use crate::modules::{output, vuln_db};
 use crate::persistence::models::{OutputFormat, PortResult, ScanResult, ScanType};
 use crate::scanner::{tcp_connect, tcp_syn, udp};
-use crate::modules::{output, vuln_db};
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
