@@ -190,7 +190,11 @@ pub async fn run_port_scan_logic_stream(
     ReceiverStream::new(rx).boxed()
 }
 
-/// Synchronous wrapper for port scanning logic
+/// Synchronous wrapper for port scanning logic.
+///
+/// # Errors
+///
+/// Returns an error if the target hostname cannot be resolved or if the scan fails.
 pub async fn run_port_scan_logic(
     target: String,
     range: String,
