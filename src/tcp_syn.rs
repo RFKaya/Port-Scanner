@@ -12,6 +12,9 @@ use crate::models::{PortResult, PortStatus};
 /// Perform a TCP SYN scan on a given port (Requires Administrator/root privileges).
 /// Because `pnet` uses blocking sockets, we wrap it in a blocking task.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
+    // SYN scan requires administrative privileges (raw sockets).
+    // It sends a SYN packet and waits for a SYN-ACK/RST response
+    // without completing the 3-way handshake.
     match task::spawn_blocking(move || scan_port_blocking(target, port, timeout_dur)).await {
         Ok(res) => res,
         Err(_) => PortResult {

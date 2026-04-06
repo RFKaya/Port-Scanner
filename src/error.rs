@@ -5,6 +5,7 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
+// Central error handling for the application
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("IO Error: {0}")]

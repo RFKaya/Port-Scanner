@@ -7,6 +7,7 @@ use crate::models::{PortResult, PortStatus};
 
 /// Perform a full TCP connect scan on a given port.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
+    // Attempt standard TCP 3-way handshake
     let socket_addr = std::net::SocketAddr::new(target, port);
 
     // Attempt to connect with a timeout

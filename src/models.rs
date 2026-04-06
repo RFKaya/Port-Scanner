@@ -1,3 +1,4 @@
+// Data structures for scan results and configuration
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -32,6 +33,7 @@ pub struct PortResult {
     pub status: PortStatus,
     pub vulnerability: Option<VulnerabilityInfo>,
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResult {

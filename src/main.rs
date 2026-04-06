@@ -15,6 +15,7 @@ use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
 
+// CLI structure defining the top-level commands
 #[derive(Parser, Debug)]
 #[command(name = "secops", version = "1.6.0", about = "Security Operations Tool")]
 struct Cli {
@@ -29,7 +30,7 @@ enum Commands {
         #[command(subcommand)]
         tool: PentestCommands,
     },
-    /// Start the web UI server
+    /// Start the web UI server (Axum-based)
     Web {
         #[arg(long, env = "PORT", default_value = "3000")]
         port: u16,
@@ -79,10 +80,10 @@ struct ScanArgs {
 
 #[tokio::main]
 async fn main() {
-    // Load .env file if it exists
+    // Load environment variables from .env file
     let _ = dotenvy::dotenv().ok();
 
-    // Initialize professional logging system
+    // Initialize the tracing subscriber for logging
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
@@ -117,10 +118,12 @@ async fn main() {
                 }
             }
         },
+        // Launch the web server on the specified port
         Commands::Web { port } => server::start_server(port).await,
     }
 }
 
+/// Core streaming logic for port scanning
 #[allow(clippy::unused_async)]
 pub async fn run_port_scan_logic_stream(
     target: String,
@@ -157,6 +160,7 @@ pub async fn run_port_scan_logic_stream(
     let (tx, rx) = mpsc::channel(100);
 
     tokio::spawn(async move {
+        // Create an asynchronous stream of scan tasks
         let scan_stream = stream::iter(ports)
             .map(|port| {
                 let st = scan_type.clone();
@@ -186,11 +190,7 @@ pub async fn run_port_scan_logic_stream(
     ReceiverStream::new(rx).boxed()
 }
 
-/// Scans the target for open ports based on the provided range and parameters.
-///
-/// # Errors
-///
-/// Returns an error if the target hostname cannot be resolved to an IP address.
+/// Synchronous wrapper for port scanning logic
 pub async fn run_port_scan_logic(
     target: String,
     range: String,

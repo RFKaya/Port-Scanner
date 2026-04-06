@@ -1,3 +1,4 @@
+// Result formatter for terminal output
 use crate::models::{OutputFormat, PortStatus, ScanResult};
 use std::fmt::Write;
 

@@ -1,6 +1,7 @@
 use crate::models::{RiskLevel, VulnerabilityInfo};
 
 pub fn get_vuln_for_port(port: u16) -> Option<VulnerabilityInfo> {
+    // Lookup common vulnerabilities based on the port number
     match port {
         21 => Some(VulnerabilityInfo {
             risk: RiskLevel::Medium,

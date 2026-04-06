@@ -7,6 +7,9 @@ use crate::models::{PortResult, PortStatus};
 
 /// Perform a basic UDP scan on a given port.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
+    // UDP is connectionless; we send a packet and wait for a possible ICMP error
+    // or a timeout (which often implies the port is open or filtered).
+
     // Bind to a local ephemeral port
     let local_addr = if target.is_ipv4() {
         "0.0.0.0:0"

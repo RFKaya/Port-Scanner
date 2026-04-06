@@ -38,6 +38,7 @@ fn default_concurrency() -> usize {
 
 pub async fn start_server(port: u16) {
     let app = Router::new()
+        // API and Static Routes
         .route("/", get(index_handler))
         .route("/api/scan", post(scan_handler))
         .route("/api/scan/stream", post(scan_stream_handler))
@@ -57,6 +58,7 @@ pub async fn start_server(port: u16) {
         }
     };
 
+    // Start serving the app
     if let Err(e) = axum::serve(listener, app).await {
         tracing::error!("Server error: {e}");
     }
@@ -70,6 +72,7 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResul
     let syn = payload.scan_type == "syn";
     let udp = payload.scan_type == "udp";
 
+    // Perform scan and return results as JSON
     let result = crate::run_port_scan_logic(
         payload.target,
         payload.range,
@@ -80,7 +83,7 @@ async fn scan_handler(Json(payload): Json<ScanRequest>) -> Result<Json<ScanResul
     )
     .await?;
 
-    // Taramayı JSON olarak diske kaydet
+    // Save scan to disk as JSON
     result.save_to_file()?;
 
     Ok(Json(result))
@@ -128,6 +131,7 @@ async fn scan_stream_handler(
         Ok(Event::default().data(json))
     });
 
+    // Stream results using SSE (Server-Sent Events)
     Sse::new(event_stream)
 }
 
