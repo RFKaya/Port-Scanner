@@ -96,6 +96,42 @@ docker-compose up -d
 
 ---
 
+## 🎬 Demo
+
+Projenin temel özelliklerini, CLI kullanımını ve Web Paneli üzerinden canlı tarama sürecini aşağıdaki demodan izleyebilirsiniz:
+
+### Web Panel Tanıtımı
+![SecOps Scanner Demo](./demo/project-demo.webp)
+
+### Örnek CLI Çıktısı (Zafiyet Analizi)
+Aşağıda, yerel bir hedef üzerinde yapılan örnek bir taramanın terminal çıktısı yer almaktadır:
+
+```bash
+# Yerel hedef üzerinde 20-30 port aralığında tarama
+cargo run -- pentest port-scan 127.0.0.1 -r 20-100
+```
+
+**Sonuçlar (Özet):**
+| Port | Protokol | Servis | Güvenlik Durumu |
+|------|----------|--------|-----------------|
+| 21 | TCP | FTP | 🟡 MEDIUM (Cleartext) |
+| 23 | TCP | Telnet | 🔴 CRITICAL (No Encryption) |
+| 80 | TCP | HTTP | 🔵 LOW (Unencrypted) |
+
+### Proof-of-Concept (Bağlantı Testi)
+Scanner tarafından açık olarak tespit edilen portlara erişim doğrulaması (PoC):
+```powershell
+# Port 23 (Telnet) bağlantı testi
+Test-NetConnection -ComputerName 127.0.0.1 -Port 23
+
+# Çıktı:
+# ComputerName     : 127.0.0.1
+# RemotePort       : 23
+# TcpTestSucceeded : True
+```
+
+---
+
 ## 🛠️ Kullanım Senaryoları
 
 ### Senaryo A: Yerel Ağ Güvenlik Testi
