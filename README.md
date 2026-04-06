@@ -1,4 +1,6 @@
 <div align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/tr/b/b3/%C4%B0stinye_%C3%9Cniversitesi_logo.png" width="180" alt="İstinye Üniversitesi Logo" />
+  <br />
   <h3>🏙️ İSTİNYE ÜNİVERSİTESİ</h3>
   <h1>🛡️ SECOPS PORT SCANNER</h1>
   <p><i>Yüksek Performanslı, Asenkron Ağ Güvenliği ve Zafiyet Analiz Aracı</i></p>
