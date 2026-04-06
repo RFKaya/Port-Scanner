@@ -1,15 +1,14 @@
 mod error;
-mod models;
-mod output;
+mod modules;
+mod persistence;
+mod scanner;
 mod server;
-mod tcp_connect;
-mod tcp_syn;
-mod udp;
-mod vuln_db;
 
 pub use crate::error::{AppError, Result};
 
-use crate::models::{OutputFormat, PortResult, ScanResult, ScanType};
+use crate::persistence::models::{OutputFormat, PortResult, ScanResult, ScanType};
+use crate::scanner::{tcp_connect, tcp_syn, udp};
+use crate::modules::{output, vuln_db};
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
@@ -175,7 +174,7 @@ pub async fn run_port_scan_logic_stream(
                     };
 
                     // If port is open, check for known vulnerabilities
-                    if matches!(res.status, crate::models::PortStatus::Open) {
+                    if matches!(res.status, crate::persistence::models::PortStatus::Open) {
                         res.vulnerability = vuln_db::get_vuln_for_port(port);
                     }
 

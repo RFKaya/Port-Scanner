@@ -7,7 +7,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::time::Duration;
 use tokio::task;
 
-use crate::models::{PortResult, PortStatus};
+use crate::persistence::models::{PortResult, PortStatus};
 
 /// Perform a TCP SYN scan on a given port (Requires Administrator/root privileges).
 /// Because `pnet` uses blocking sockets, we wrap it in a blocking task.

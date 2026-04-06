@@ -1,5 +1,5 @@
 // Result formatter for terminal output
-use crate::models::{OutputFormat, PortStatus, ScanResult};
+use crate::persistence::models::{OutputFormat, PortStatus, ScanResult};
 use std::fmt::Write;
 
 pub fn print_results(result: &ScanResult, format: &OutputFormat) {
@@ -63,7 +63,7 @@ pub fn render_markdown(result: &ScanResult) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{PortResult, PortStatus, ScanResult};
+    use crate::persistence::models::{PortResult, PortStatus, ScanResult};
 
     #[test]
     fn test_render_markdown_summary() {

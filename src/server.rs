@@ -1,4 +1,4 @@
-use crate::models::ScanResult;
+use crate::persistence::models::ScanResult;
 use crate::Result;
 use axum::{
     extract::Path,

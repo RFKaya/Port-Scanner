@@ -3,7 +3,7 @@ use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::time::timeout;
 
-use crate::models::{PortResult, PortStatus};
+use crate::persistence::models::{PortResult, PortStatus};
 
 /// Perform a basic UDP scan on a given port.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
