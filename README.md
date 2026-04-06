@@ -61,7 +61,7 @@ Bu araç, sadece portların açık olup olmadığını kontrol etmekle kalmaz, a
 
 Aşağıdaki demo videosunda SecOps Port Scanner'ın Web UI ve CLI üzerindeki yeteneklerini, zafiyet tespit süreçlerini ve gerçek zamanlı raporlama özelliklerini görebilirsiniz:
 
-![SecOps Project Demo](demo/project-demo.webm)
+![SecOps Project Demo](demo/project-demo.webp)
 
 ---
 
