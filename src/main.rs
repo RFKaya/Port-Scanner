@@ -16,7 +16,7 @@ use std::net::{IpAddr, ToSocketAddrs};
 use std::time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.5.1", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.6.0", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -31,7 +31,7 @@ enum Commands {
     },
     /// Start the web UI server
     Web {
-        #[arg(long, default_value = "3000")]
+        #[arg(long, env = "PORT", default_value = "3000")]
         port: u16,
     },
 }
@@ -79,6 +79,14 @@ struct ScanArgs {
 
 #[tokio::main]
 async fn main() {
+    // Load .env file if it exists
+    let _ = dotenvy::dotenv().ok();
+
+    // Initialize professional logging system
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     let cli = Cli::parse();
 
     match cli.command {
@@ -101,11 +109,11 @@ async fn main() {
 
                         // Save results to disk
                         match data.save_to_file() {
-                            Ok(path) => println!("\n[+] Scan results saved to: {path}"),
-                            Err(e) => eprintln!("\n[!] Save error: {e}"),
+                            Ok(path) => tracing::info!("Scan results saved to: {path}"),
+                            Err(e) => tracing::error!("Save error: {e}"),
                         }
                     }
-                    Err(e) => eprintln!("Error: {e}"),
+                    Err(e) => tracing::error!("Scan error: {e}"),
                 }
             }
         },

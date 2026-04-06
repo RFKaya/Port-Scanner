@@ -3,7 +3,7 @@
   <h1>🛡️ SECOPS PORT SCANNER</h1>
   <p><i>Yüksek Performanslı, Asenkron Ağ Güvenliği ve Zafiyet Analiz Aracı</i></p>
 
-  <img src="https://img.shields.io/badge/Versiyon-1.5.2-blue?style=for-the-badge&logo=github" />
+  <img src="https://img.shields.io/badge/Versiyon-1.6.0-blue?style=for-the-badge&logo=github" />
   <img src="https://img.shields.io/badge/Rust-1.75%2B-orange?style=for-the-badge&logo=rust" />
   <img src="https://img.shields.io/badge/Lisans-MIT-green?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey?style=for-the-badge" />
@@ -77,6 +77,20 @@ Daha hızlı ve doğrudan sonuçlar için:
 ```bash
 cargo run -- pentest port-scan 127.0.0.1 --range 1-1000 --syn
 ```
+
+### 🐳 4. Docker ile Çalıştırma
+Uygulamayı herhangi bir bağımlılık (Npcap vb.) yüklemeden Docker üzerinde çalıştırabilirsiniz:
+
+```bash
+# Sadece Docker imajını oluşturun
+docker build -t secops-scanner .
+
+# Docker Compose ile tüm ortamı başlatın
+docker-compose up -d
+```
+
+> [!CAUTION]
+> Docker üzerinden **SYN Tarama** yapabilmek için kapsayıcıya ağ yetkileri verilmelidir. `docker-compose.yml` dosyasında bu yetkiler (`cap_add: [NET_ADMIN, NET_RAW]`) tanımlanmıştır.
 
 ---
 

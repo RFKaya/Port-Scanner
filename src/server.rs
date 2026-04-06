@@ -47,18 +47,18 @@ pub async fn start_server(port: u16) {
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    println!("Server starting on http://{addr}");
+    tracing::info!("Server starting on http://{addr}");
 
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("Failed to bind to {addr}: {e}");
+            tracing::error!("Failed to bind to {addr}: {e}");
             return;
         }
     };
 
     if let Err(e) = axum::serve(listener, app).await {
-        eprintln!("Server error: {e}");
+        tracing::error!("Server error: {e}");
     }
 }
 

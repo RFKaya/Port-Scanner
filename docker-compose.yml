@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  port-scanner:
+    build: .
+    container_name: secops-port-scanner
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - RUST_LOG=info
+    # Required for SYN scans (raw sockets)
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # network_mode: host # Alternative for full network visibility
+    volumes:
+      - ./scans:/app/scans
+    restart: unless-stopped
