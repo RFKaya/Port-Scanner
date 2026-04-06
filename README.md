@@ -98,10 +98,13 @@ docker-compose up -d
 
 ## 🎬 Demo
 
-Projenin temel özelliklerini, CLI kullanımını ve Web Paneli üzerinden canlı tarama sürecini aşağıdaki demodan izleyebilirsiniz:
+Projenin temel özelliklerini, CLI kullanımını ve Web Paneli üzerinden canlı tarama sürecini aşağıdaki interaktif rehberden inceleyebilirsiniz:
 
-### Web Panel Tanıtımı
-![SecOps Scanner Demo](./demo/project-demo.webp)
+### Web Panel Görünümü
+![SecOps Scanner Dashboard](./demo/scan_results.png)
+
+> [!TIP]
+> 📖 **[İnteraktif kullanım rehberini (Carousel)](docs/USAGE.md#-3-g%C3%B6rsel-kullan%C4%B1m-rehberi-carousel)** ziyaret ederek adım adım tarama sürecini ve zafiyet detaylarını inceleyebilirsiniz.
 
 ### Örnek CLI Çıktısı (Zafiyet Analizi)
 Aşağıda, yerel bir hedef üzerinde yapılan örnek bir taramanın terminal çıktısı yer almaktadır:

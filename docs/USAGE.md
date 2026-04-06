@@ -67,6 +67,23 @@ cargo run -- web
 
 ---
 
+## 🎬 3. Görsel Kullanım Rehberi (Carousel)
+
+Web panelinin nasıl kullanılacağını ve tarama sonuçlarının nasıl analiz edileceğini aşağıdaki interaktif rehberden inceleyebilirsiniz:
+
+````carousel
+![SecOps Dashboard Ana Ekran](../demo/initial_view.png)
+Tarayıcıyı başlattığınızda sizi karşılayan modern, grafik destekli dashboard ekranı.
+<!-- slide -->
+![Tarama Sonuçları ve Zafiyetler](../demo/scan_results.png)
+Canlı tarama sonuçları: Açık portlar, protokol tipleri ve tespit edilen zafiyet dereceleri (Critical, High, Medium, Low).
+<!-- slide -->
+![Zafiyet Detay Penceresi](../demo/vulnerability_detail.png)
+Kritik bir bulguya tıklandığında açılan detay penceresi: Zafiyet açıklaması ve çözüm önerileri.
+````
+
+---
+
 ## 📊 Parametreler Listesi
 
 | Uzun Ad | Kısa | Açıklama | Varsayılan |
