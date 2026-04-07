@@ -1,3 +1,4 @@
+mod config;
 mod error;
 mod modules;
 mod persistence;
@@ -6,14 +7,14 @@ mod server;
 
 pub use crate::error::{AppError, Result};
 
-use crate::modules::{output, vuln_db};
+use crate::modules::{network, output, parser, stats, vuln_db};
 use crate::persistence::models::{OutputFormat, PortResult, ScanResult, ScanType};
-use crate::scanner::{tcp_connect, tcp_syn, udp};
+use crate::scanner::{banner, tcp_connect, tcp_syn, udp};
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
-use std::net::{IpAddr, ToSocketAddrs};
+use std::net::IpAddr;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 
 // CLI structure defining the top-level commands
@@ -77,6 +78,10 @@ struct ScanArgs {
     /// Number of concurrent tasks (Adaptive limits: TCP: 2000, UDP: 500, SYN: 200)
     #[arg(short = 'c', long, default_value_t = 500)]
     concurrency: usize,
+
+    /// Enable banner grabbing on open ports
+    #[arg(long)]
+    banner: bool,
 }
 
 #[tokio::main]
@@ -89,16 +94,91 @@ async fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
+    // Load and validate application configuration
+    let app_config = config::AppConfig::from_env();
+    if let Err(errors) = app_config.validate() {
+        for err in &errors {
+            tracing::warn!("Configuration warning: {err}");
+        }
+    }
+
     let cli = Cli::parse();
 
     match cli.command {
         Commands::Pentest { tool } => match tool {
             PentestCommands::PortScan(args) => {
-                tracing::info!(
-                    "Starting scan on {} using range {}",
-                    args.target,
-                    args.range
+                // Validate port input before starting the scan
+                if let Err(e) = parser::validate_port_input(&args.range) {
+                    tracing::error!("Invalid port range: {e}");
+                    return;
+                }
+
+                // Resolve and classify the target
+                let target_spec = match parser::parse_target(&args.target) {
+                    Ok(spec) => spec,
+                    Err(e) => {
+                        tracing::error!("Target resolution failed: {e}");
+                        return;
+                    }
+                };
+
+                let ip_class = network::classify_ip(&target_spec.ip);
+                let port_count = parser::estimate_port_count(&args.range);
+
+                // Print scan header
+                println!(
+                    "\x1b[1;34m========================================================\x1b[0m"
                 );
+                println!(
+                    "\x1b[1;32m   🛡️  SecOps Port Scanner — CLI Scan Started          \x1b[0m"
+                );
+                println!(
+                    "\x1b[1;34m========================================================\x1b[0m"
+                );
+                println!("\x1b[1;36m   🎯 Target:  \x1b[1;33m{}\x1b[0m", target_spec);
+                println!("\x1b[1;36m   🌐 Network: \x1b[1;33m{}\x1b[0m", ip_class);
+                println!(
+                    "\x1b[1;36m   📡 Ports:   \x1b[1;33m{} ({})\x1b[0m",
+                    args.range, port_count
+                );
+                println!(
+                    "\x1b[1;36m   ⏱️  Timeout: \x1b[1;33m{}ms\x1b[0m",
+                    args.timeout
+                );
+                println!(
+                    "\x1b[1;36m   🔌 Banner:  \x1b[1;33m{}\x1b[0m",
+                    if args.banner { "Enabled" } else { "Disabled" }
+                );
+                println!(
+                    "\x1b[1;34m========================================================\x1b[0m"
+                );
+
+                // Warn if scanning a public IP
+                if matches!(ip_class, network::IpClassification::Public) {
+                    tracing::warn!(
+                        "Scanning a public IP address ({}). Ensure you have authorization.",
+                        target_spec.ip
+                    );
+                }
+
+                tracing::info!(
+                    "Starting {} scan on {} ({}) — {} ports, timeout {}ms",
+                    if args.syn {
+                        "SYN"
+                    } else if args.udp {
+                        "UDP"
+                    } else {
+                        "TCP"
+                    },
+                    target_spec,
+                    ip_class,
+                    port_count,
+                    args.timeout
+                );
+
+                // Start timing
+                let scan_start = Instant::now();
+
                 let res = run_port_scan_logic(
                     args.target.clone(),
                     args.range.clone(),
@@ -110,8 +190,35 @@ async fn main() {
                 .await;
 
                 match res {
-                    Ok(data) => {
-                        // Print results to screen
+                    Ok(mut data) => {
+                        let scan_duration = scan_start.elapsed();
+
+                        // Banner grabbing phase (if enabled)
+                        if args.banner {
+                            let open_ports: Vec<u16> = data
+                                .ports
+                                .iter()
+                                .filter(|p| p.is_open())
+                                .map(|p| p.port)
+                                .collect();
+
+                            if !open_ports.is_empty() {
+                                println!(
+                                    "\n\x1b[1;36m🔍 Grabbing banners for {} open port(s)...\x1b[0m",
+                                    open_ports.len()
+                                );
+                                let banner_results =
+                                    grab_banners(target_spec.ip, &open_ports, args.timeout).await;
+                                output::print_banner_results(&banner_results);
+                            }
+                        }
+
+                        // Build and display statistics
+                        let scan_stats = stats::build_statistics(&data, scan_duration);
+                        let report = stats::generate_summary_report(&scan_stats);
+                        println!("\n{report}");
+
+                        // Print detailed results
                         output::print_results(&data, &args.format);
 
                         // Save results to disk
@@ -158,6 +265,35 @@ fn effective_concurrency(scan_type: &ScanType, requested: usize) -> usize {
     effective
 }
 
+/// Grab banners from a list of open ports.
+///
+/// Runs banner grabbing concurrently with a small concurrency limit.
+async fn grab_banners(target: IpAddr, ports: &[u16], timeout_ms: u64) -> Vec<banner::BannerResult> {
+    let mut results = Vec::new();
+    let semaphore = Arc::new(Semaphore::new(10)); // Limit concurrent banner grabs
+
+    let handles: Vec<_> = ports
+        .iter()
+        .map(|&port| {
+            let sem = Arc::clone(&semaphore);
+            let timeout = Some(timeout_ms);
+            tokio::spawn(async move {
+                let _permit = sem.acquire().await;
+                banner::grab_banner(target, port, timeout).await
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        if let Ok(result) = handle.await {
+            results.push(result);
+        }
+    }
+
+    results.sort_by_key(|r| r.port);
+    results
+}
+
 /// Core streaming logic for port scanning.
 ///
 /// Uses a [`Semaphore`] to enforce a hard cap on simultaneously active OS-level
@@ -187,14 +323,14 @@ pub async fn run_port_scan_logic_stream(
     // Apply adaptive concurrency cap based on scan type
     let effective_limit = effective_concurrency(&scan_type, concurrency_limit);
 
-    // Parse target
-    let Ok(target_ip) = resolve_target(&target) else {
+    // Parse target using the parser module
+    let Ok(target_ip) = parser::resolve_target(&target) else {
         return stream::empty().boxed();
     };
 
-    // Parse port range
+    // Parse port range using the parser module
     let range_to_use = if range.is_empty() { "1-1024" } else { &range };
-    let ports = parse_ports(range_to_use);
+    let ports = parser::parse_ports(range_to_use);
 
     // Timeout duration
     let timeout_dur = Duration::from_millis(timeout_ms);
@@ -258,8 +394,8 @@ pub async fn run_port_scan_logic(
     timeout_ms: u64,
     concurrency: usize,
 ) -> Result<ScanResult> {
-    // Check target resolution first
-    let _ = resolve_target(&target)?;
+    // Check target resolution first using the parser module
+    let _ = parser::resolve_target(&target)?;
 
     let mut stream =
         run_port_scan_logic_stream(target.clone(), range, syn, udp, timeout_ms, concurrency).await;
@@ -275,103 +411,97 @@ pub async fn run_port_scan_logic(
     })
 }
 
-// Simple port range parser. Handles "80", "1-1024", or "80,443,1-100".
-fn parse_ports(range_str: &str) -> Vec<u16> {
-    let mut ports = Vec::new();
-    for part in range_str.split(',') {
-        let part_str = part.trim();
-        if part_str.is_empty() {
-            continue;
-        }
-
-        let sub_parts: Vec<&str> = part_str.split('-').collect();
-        if sub_parts.len() == 2 {
-            if let (Ok(start), Ok(end)) = (sub_parts[0].parse::<u32>(), sub_parts[1].parse::<u32>())
-            {
-                // Clamp to valid port ranges
-                let start_clamped = start.clamp(1, 65535) as u16;
-                let end_clamped = end.clamp(1, 65535) as u16;
-
-                for p in start_clamped..=end_clamped {
-                    ports.push(p);
-                }
-            }
-        } else if sub_parts.len() == 1 {
-            if let Ok(p) = sub_parts[0].parse::<u32>() {
-                if (1..=65535).contains(&p) {
-                    if let Ok(p_u16) = u16::try_from(p) {
-                        ports.push(p_u16);
-                    }
-                }
-            }
-        }
-    }
-    // Remove duplicates
-    ports.sort_unstable();
-    ports.dedup();
-
-    ports
-}
-
-// Simple DNS lookup / IP parser
-fn resolve_target(target: &str) -> crate::Result<IpAddr> {
-    // If it's directly an IP
-    if let Ok(ip) = target.parse::<IpAddr>() {
-        return Ok(ip);
-    }
-
-    // Otherwise, try to resolve via ToSocketAddrs
-    // We append a dummy port just for resolution
-    let probe = format!("{target}:80");
-    if let Ok(mut addrs) = probe.to_socket_addrs() {
-        if let Some(addr) = addrs.next() {
-            return Ok(addr.ip());
-        }
-    }
-    Err(AppError::Resolution(target.to_string()))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_parse_ports_single() {
-        assert_eq!(parse_ports("80"), vec![80]);
+        assert_eq!(parser::parse_ports("80"), vec![80]);
     }
 
     #[test]
     fn test_parse_ports_range() {
-        assert_eq!(parse_ports("1-5"), vec![1, 2, 3, 4, 5]);
+        assert_eq!(parser::parse_ports("1-5"), vec![1, 2, 3, 4, 5]);
     }
 
     #[test]
     fn test_parse_ports_mixed() {
-        assert_eq!(parse_ports("80,443,10-12"), vec![10, 11, 12, 80, 443]);
+        assert_eq!(
+            parser::parse_ports("80,443,10-12"),
+            vec![10, 11, 12, 80, 443]
+        );
     }
 
     #[test]
     fn test_parse_ports_overlap_and_unsorted() {
         assert_eq!(
-            parse_ports("80,70-85,22"),
+            parser::parse_ports("80,70-85,22"),
             vec![22, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85]
         );
     }
 
     #[test]
     fn test_parse_ports_invalid() {
-        assert_eq!(parse_ports("abc, 70000, -1"), Vec::<u16>::new());
+        assert_eq!(parser::parse_ports("abc, 70000, -1"), Vec::<u16>::new());
     }
 
     #[test]
     fn test_resolve_target_ip() {
-        assert!(resolve_target("127.0.0.1").is_ok());
-        assert!(resolve_target("::1").is_ok());
+        assert!(parser::resolve_target("127.0.0.1").is_ok());
+        assert!(parser::resolve_target("::1").is_ok());
     }
 
     #[test]
     fn test_resolve_target_localhost() {
-        // This might fail in some restricted environments, but usually works
-        assert!(resolve_target("localhost").is_ok());
+        assert!(parser::resolve_target("localhost").is_ok());
+    }
+
+    #[test]
+    fn test_effective_concurrency_tcp() {
+        assert_eq!(effective_concurrency(&ScanType::Connect, 5000), 2000);
+        assert_eq!(effective_concurrency(&ScanType::Connect, 100), 100);
+        assert_eq!(effective_concurrency(&ScanType::Connect, 0), 1);
+    }
+
+    #[test]
+    fn test_effective_concurrency_syn() {
+        assert_eq!(effective_concurrency(&ScanType::Syn, 500), 200);
+        assert_eq!(effective_concurrency(&ScanType::Syn, 50), 50);
+    }
+
+    #[test]
+    fn test_effective_concurrency_udp() {
+        assert_eq!(effective_concurrency(&ScanType::Udp, 1000), 500);
+        assert_eq!(effective_concurrency(&ScanType::Udp, 200), 200);
+    }
+
+    #[test]
+    fn test_validate_port_input_integration() {
+        assert!(parser::validate_port_input("1-1024").is_ok());
+        assert!(parser::validate_port_input("").is_err());
+        assert!(parser::validate_port_input("99999").is_err());
+    }
+
+    #[test]
+    fn test_ip_classification_integration() {
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        assert_eq!(
+            network::classify_ip(&ip),
+            network::IpClassification::Loopback
+        );
+
+        let public_ip: IpAddr = "8.8.8.8".parse().unwrap();
+        assert_eq!(
+            network::classify_ip(&public_ip),
+            network::IpClassification::Public
+        );
+    }
+
+    #[test]
+    fn test_config_from_env_integration() {
+        let cfg = config::AppConfig::from_env();
+        assert!(cfg.validate().is_ok());
+        assert_eq!(cfg.scan.default_timeout_ms, 1000);
     }
 }
