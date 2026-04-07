@@ -18,7 +18,7 @@ use tokio::sync::Semaphore;
 
 // CLI structure defining the top-level commands
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.7.0", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.7.1", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -94,7 +94,11 @@ async fn main() {
     match cli.command {
         Commands::Pentest { tool } => match tool {
             PentestCommands::PortScan(args) => {
-                tracing::info!("Starting scan on {} using range {}", args.target, args.range);
+                tracing::info!(
+                    "Starting scan on {} using range {}",
+                    args.target,
+                    args.range
+                );
                 let res = run_port_scan_logic(
                     args.target.clone(),
                     args.range.clone(),

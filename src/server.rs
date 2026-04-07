@@ -48,7 +48,7 @@ pub async fn start_server(port: u16) {
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    
+
     // Premium Console Log
     println!("\x1b[1;34m========================================================\x1b[0m");
     println!("\x1b[1;32m   🛡️  SecOps Port Scanner - Web Interface Started   \x1b[0m");
