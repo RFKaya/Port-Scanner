@@ -12,11 +12,13 @@ use crate::scanner::{tcp_connect, tcp_syn, udp};
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
 use std::net::{IpAddr, ToSocketAddrs};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Semaphore;
 
 // CLI structure defining the top-level commands
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.6.1", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.7.0", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -72,7 +74,7 @@ struct ScanArgs {
     #[arg(long, default_value_t = 1000)]
     timeout: u64,
 
-    /// Number of concurrent tasks (default: 500)
+    /// Number of concurrent tasks (Adaptive limits: TCP: 2000, UDP: 500, SYN: 200)
     #[arg(short = 'c', long, default_value_t = 500)]
     concurrency: usize,
 }
@@ -123,7 +125,40 @@ async fn main() {
     }
 }
 
-/// Core streaming logic for port scanning
+/// Maximum safe concurrency limits per scan type to prevent OS resource exhaustion.
+/// TCP Connect opens real OS sockets, SYN uses raw sockets + blocking threads,
+/// UDP binds a new socket per port.
+const MAX_CONCURRENCY_TCP: usize = 2000;
+const MAX_CONCURRENCY_SYN: usize = 200;
+const MAX_CONCURRENCY_UDP: usize = 500;
+
+/// Clamps user-provided concurrency to safe limits based on scan type,
+/// ensuring the OS doesn't run out of sockets or file descriptors.
+fn effective_concurrency(scan_type: &ScanType, requested: usize) -> usize {
+    let cap = match scan_type {
+        ScanType::Connect => MAX_CONCURRENCY_TCP,
+        ScanType::Syn => MAX_CONCURRENCY_SYN,
+        ScanType::Udp => MAX_CONCURRENCY_UDP,
+    };
+    let effective = requested.min(cap).max(1);
+    if requested > cap {
+        tracing::warn!(
+            "Requested concurrency ({}) exceeds safe limit for {:?} scan. Capped to {}.",
+            requested,
+            scan_type,
+            effective
+        );
+    } else if requested == 0 {
+        tracing::warn!("Requested concurrency (0) is invalid. Increased to 1.");
+    }
+    effective
+}
+
+/// Core streaming logic for port scanning.
+///
+/// Uses a [`Semaphore`] to enforce a hard cap on simultaneously active OS-level
+/// connections, preventing socket/file-descriptor exhaustion even when the
+/// user specifies very high concurrency values.
 #[allow(clippy::unused_async)]
 pub async fn run_port_scan_logic_stream(
     target: String,
@@ -145,6 +180,9 @@ pub async fn run_port_scan_logic_stream(
         ScanType::Connect
     };
 
+    // Apply adaptive concurrency cap based on scan type
+    let effective_limit = effective_concurrency(&scan_type, concurrency_limit);
+
     // Parse target
     let Ok(target_ip) = resolve_target(&target) else {
         return stream::empty().boxed();
@@ -157,15 +195,27 @@ pub async fn run_port_scan_logic_stream(
     // Timeout duration
     let timeout_dur = Duration::from_millis(timeout_ms);
 
-    let (tx, rx) = mpsc::channel(100);
+    // Size the channel buffer proportionally to concurrency to avoid
+    // unnecessary backpressure when many tasks complete at once.
+    let channel_buf = (effective_limit * 2).clamp(100, 8192);
+    let (tx, rx) = mpsc::channel(channel_buf);
+
+    // A semaphore acts as the true rate-limiter: even though
+    // buffer_unordered eagerly polls futures, the semaphore ensures no
+    // more than `effective_limit` OS-level operations run simultaneously.
+    let semaphore = Arc::new(Semaphore::new(effective_limit));
 
     tokio::spawn(async move {
-        // Create an asynchronous stream of scan tasks
         let scan_stream = stream::iter(ports)
             .map(|port| {
                 let st = scan_type.clone();
                 let tx_inner = tx.clone();
+                let sem = Arc::clone(&semaphore);
                 async move {
+                    // Acquire a permit before opening any OS socket.
+                    // This is the key mechanism that prevents resource exhaustion.
+                    let _permit = sem.acquire().await;
+
                     let mut res = match st {
                         ScanType::Connect => {
                             tcp_connect::scan_port(target_ip, port, timeout_dur).await
@@ -180,9 +230,10 @@ pub async fn run_port_scan_logic_stream(
                     }
 
                     let _ = tx_inner.send(res).await;
+                    // _permit is dropped here, releasing the semaphore slot
                 }
             })
-            .buffer_unordered(concurrency_limit);
+            .buffer_unordered(effective_limit);
 
         scan_stream.collect::<()>().await;
     });

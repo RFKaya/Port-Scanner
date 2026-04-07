@@ -9,12 +9,26 @@ use tokio::task;
 
 use crate::persistence::models::{PortResult, PortStatus};
 
+/// Maximum number of concurrent raw sockets for SYN scanning.
+/// Raw sockets are expensive OS resources and opening too many at once
+/// can crash the network stack, especially on Windows with Npcap.
+const MAX_CONCURRENT_RAW_SOCKETS: usize = 50;
+
+/// Returns a process-wide semaphore that limits concurrent raw socket usage.
+fn raw_socket_semaphore() -> &'static tokio::sync::Semaphore {
+    static SEM: std::sync::OnceLock<tokio::sync::Semaphore> = std::sync::OnceLock::new();
+    SEM.get_or_init(|| tokio::sync::Semaphore::new(MAX_CONCURRENT_RAW_SOCKETS))
+}
+
 /// Perform a TCP SYN scan on a given port (Requires Administrator/root privileges).
 /// Because `pnet` uses blocking sockets, we wrap it in a blocking task.
+/// A process-wide semaphore limits concurrent raw socket usage to prevent
+/// OS resource exhaustion.
 pub async fn scan_port(target: IpAddr, port: u16, timeout_dur: Duration) -> PortResult {
-    // SYN scan requires administrative privileges (raw sockets).
-    // It sends a SYN packet and waits for a SYN-ACK/RST response
-    // without completing the 3-way handshake.
+    // Acquire a raw-socket permit before spawning the blocking task.
+    // This prevents hundreds of simultaneous raw sockets from crashing the system.
+    let _permit = raw_socket_semaphore().acquire().await;
+
     match task::spawn_blocking(move || scan_port_blocking(target, port, timeout_dur)).await {
         Ok(res) => res,
         Err(_) => PortResult {

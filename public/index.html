@@ -736,7 +736,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>SecOps Scanner <span style="font-size: 0.85rem; font-weight: 700; background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.3); color: var(--primary); padding: 2px 10px; border-radius: 20px; vertical-align: middle; margin-left: 14px; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);">v1.5.1</span></h1>
+            <h1>SecOps Scanner <span style="font-size: 0.85rem; font-weight: 700; background: rgba(0, 242, 254, 0.15); border: 1px solid rgba(0, 242, 254, 0.3); color: var(--primary); padding: 2px 10px; border-radius: 20px; vertical-align: middle; margin-left: 14px; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);">v1.7.0</span></h1>
             <p class="subtitle">High-performance network reconnaissance engine</p>
         </header>
 
@@ -788,8 +788,8 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="concurrency">Concurrency</label>
-                                <input type="number" id="concurrency" placeholder="500" min="1" max="5000" value="500" onfocus="this.select()">
+                                <label for="concurrency">Concurrency <span id="concurrencyLimitHint" style="font-size: 0.65rem; color: var(--accent); text-transform: none; margin-left: 4px;">(Max: 2000)</span></label>
+                                <input type="number" id="concurrency" placeholder="500" min="1" max="2000" value="500" onfocus="this.select()">
                             </div>
                         </div>
 
@@ -948,6 +948,32 @@
         const historyList = document.getElementById('historyList');
         const historyTabBtn = document.getElementById('historyTabBtn');
         const cmdConcurrency = document.getElementById('cmdConcurrency');
+        const scanTypeSelect = document.getElementById('scan_type');
+        const concurrencyInput = document.getElementById('concurrency');
+        const concurrencyLimitHint = document.getElementById('concurrencyLimitHint');
+
+        const SCAN_LIMITS = {
+            'tcp': { max: 2000, label: '(Max: 2000)' },
+            'syn': { max: 200, label: '(Max: 200)' },
+            'udp': { max: 500, label: '(Max: 500)' }
+        };
+
+        const updateConcurrencyLimits = () => {
+            const type = scanTypeSelect.value;
+            const limits = SCAN_LIMITS[type] || SCAN_LIMITS['tcp'];
+            concurrencyInput.max = limits.max;
+            concurrencyLimitHint.innerText = limits.label;
+            
+            // If current value exceeds new limit, nudge it down
+            if (parseInt(concurrencyInput.value) > limits.max) {
+                concurrencyInput.value = limits.max;
+                updateCommand();
+            }
+        };
+
+        scanTypeSelect.addEventListener('change', updateConcurrencyLimits);
+        // Initial call
+        updateConcurrencyLimits();
 
         let statusChart = null;
         let chartCounts = { 'Open': 0, 'Closed': 0, 'Filtered': 0 };
@@ -1319,7 +1345,19 @@
                 cmdTimeout.style.display = 'none';
             }
 
-            const concurrency = document.getElementById('concurrency').value;
+            const concurrencyInput = document.getElementById('concurrency');
+            let concurrency = parseInt(concurrencyInput.value);
+            const limits = { 'tcp': 2000, 'udp': 500, 'syn': 200 };
+            const maxLimit = limits[scan_type] || 2000;
+            
+            concurrencyInput.max = maxLimit;
+            document.getElementById('concurrencyLimitHint').innerText = `(Max: ${maxLimit})`;
+            
+            if (concurrency > maxLimit) {
+                concurrencyInput.value = maxLimit;
+                concurrency = maxLimit;
+            }
+
             if (concurrency && concurrency !== '500') {
                 cmdConcurrency.innerText = `-c ${concurrency}`;
                 cmdConcurrency.style.display = 'inline';
