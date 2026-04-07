@@ -16,7 +16,7 @@ use std::time::Duration;
 
 // CLI structure defining the top-level commands
 #[derive(Parser, Debug)]
-#[command(name = "secops", version = "1.6.0", about = "Security Operations Tool")]
+#[command(name = "secops", version = "1.6.1", about = "Security Operations Tool")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

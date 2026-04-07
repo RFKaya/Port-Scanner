@@ -5,7 +5,7 @@
   <h1>🛡️ SECOPS PORT SCANNER</h1>
   <p><i>Yüksek Performanslı, Asenkron Ağ Güvenliği ve Zafiyet Analiz Aracı</i></p>
 
-  <img src="https://img.shields.io/badge/Versiyon-1.6.0-blue?style=for-the-badge&logo=github" />
+  <img src="https://img.shields.io/badge/Versiyon-1.6.1-blue?style=for-the-badge&logo=github" />
   <img src="https://img.shields.io/badge/Rust-1.75%2B-orange?style=for-the-badge&logo=rust" />
   <img src="https://img.shields.io/badge/Lisans-MIT-green?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey?style=for-the-badge" />
