@@ -92,6 +92,7 @@ async fn main() {
     match cli.command {
         Commands::Pentest { tool } => match tool {
             PentestCommands::PortScan(args) => {
+                tracing::info!("Starting scan on {} using range {}", args.target, args.range);
                 let res = run_port_scan_logic(
                     args.target.clone(),
                     args.range.clone(),

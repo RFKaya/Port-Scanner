@@ -48,7 +48,16 @@ pub async fn start_server(port: u16) {
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    tracing::info!("Server starting on http://{addr}");
+    
+    // Premium Console Log
+    println!("\x1b[1;34m========================================================\x1b[0m");
+    println!("\x1b[1;32m   🛡️  SecOps Port Scanner - Web Interface Started   \x1b[0m");
+    println!("\x1b[1;34m========================================================\x1b[0m");
+    println!("\x1b[1;36m   🌐 URL: \x1b[4;36mhttp://{}\x1b[0m", addr);
+    println!("\x1b[1;36m   🔌 Port: \x1b[1;33m{}\x1b[0m", port);
+    println!("\x1b[1;34m========================================================\x1b[0m");
+
+    tracing::info!("Server running on http://{addr}");
 
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
