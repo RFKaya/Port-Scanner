@@ -788,7 +788,7 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="concurrency">Concurrency <span id="concurrencyLimitHint" style="font-size: 0.65rem; color: var(--accent); text-transform: none; margin-left: 4px;">(Max: 2000)</span></label>
+                                <label for="concurrency">Concurrency</label>
                                 <input type="number" id="concurrency" placeholder="500" min="1" max="2000" value="500" onfocus="this.select()">
                             </div>
                         </div>
@@ -950,19 +950,17 @@
         const cmdConcurrency = document.getElementById('cmdConcurrency');
         const scanTypeSelect = document.getElementById('scan_type');
         const concurrencyInput = document.getElementById('concurrency');
-        const concurrencyLimitHint = document.getElementById('concurrencyLimitHint');
 
         const SCAN_LIMITS = {
-            'tcp': { max: 2000, label: '(Max: 2000)' },
-            'syn': { max: 200, label: '(Max: 200)' },
-            'udp': { max: 500, label: '(Max: 500)' }
+            'tcp': { max: 2000 },
+            'syn': { max: 200 },
+            'udp': { max: 500 }
         };
 
         const updateConcurrencyLimits = () => {
             const type = scanTypeSelect.value;
             const limits = SCAN_LIMITS[type] || SCAN_LIMITS['tcp'];
             concurrencyInput.max = limits.max;
-            concurrencyLimitHint.innerText = limits.label;
             
             // If current value exceeds new limit, nudge it down
             if (parseInt(concurrencyInput.value) > limits.max) {
@@ -1351,7 +1349,6 @@
             const maxLimit = limits[scan_type] || 2000;
             
             concurrencyInput.max = maxLimit;
-            document.getElementById('concurrencyLimitHint').innerText = `(Max: ${maxLimit})`;
             
             if (concurrency > maxLimit) {
                 concurrencyInput.value = maxLimit;
