@@ -53,8 +53,8 @@ pub async fn start_server(port: u16) {
     println!("\x1b[1;34m========================================================\x1b[0m");
     println!("\x1b[1;32m   🛡️  SecOps Port Scanner - Web Interface Started   \x1b[0m");
     println!("\x1b[1;34m========================================================\x1b[0m");
-    println!("\x1b[1;36m   🌐 URL: \x1b[4;36mhttp://{}\x1b[0m", addr);
-    println!("\x1b[1;36m   🔌 Port: \x1b[1;33m{}\x1b[0m", port);
+    println!("\x1b[1;36m   🌐 URL: \x1b[4;36mhttp://{addr}\x1b[0m");
+    println!("\x1b[1;36m   🔌 Port: \x1b[1;33m{port}\x1b[0m");
     println!("\x1b[1;34m========================================================\x1b[0m");
 
     tracing::info!("Server running on http://{addr}");
